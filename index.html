@@ -3,89 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Frete Master - Seleção Direta</title>
+    <title>Frete Master Pro - Sistema Integrado</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     
     <style>
-        :root { 
-            --primary: #1b5e20; 
-            --accent: #0d47a1; 
-            --field-height: 50px;
-        }
+        :root { --primary: #1b5e20; --accent: #0d47a1; --field-height: 48px; }
         
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        body { font-family: 'Roboto', Arial, sans-serif; margin: 0; background: #f8f9fa; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        .sidebar { width: 100%; max-width: 400px; background: white; padding: 20px; box-shadow: 2px 0 15px rgba(0,0,0,0.1); z-index: 10; overflow-y: auto; box-sizing: border-box; }
-        #map { flex-grow: 1; z-index: 1; cursor: crosshair; } /* Cursor de precisão no mapa */
+        /* Barra Lateral */
+        .sidebar { width: 100%; max-width: 380px; background: white; padding: 15px; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1001; overflow-y: auto; box-sizing: border-box; }
+        #map { flex-grow: 1; z-index: 1; cursor: crosshair; }
 
-        .input-standard, .btn-standard {
-            width: 100%; height: var(--field-height);
-            box-sizing: border-box; border-radius: 8px;
-            font-size: 1rem; margin-bottom: 12px;
-            display: flex; align-items: center; justify-content: center; border: 1px solid #ccc;
+        /* Padronização Total */
+        .input-std, .btn-std {
+            width: 100%; height: var(--field-height); box-sizing: border-box;
+            border-radius: 8px; border: 1px solid #dadce0; margin-bottom: 10px;
+            font-size: 0.95rem; display: flex; align-items: center; justify-content: center;
         }
+        input { padding: 0 12px; }
+        .btn-std { border: none; color: white; font-weight: bold; cursor: pointer; text-transform: uppercase; }
 
-        input[type="number"], input[type="text"] { padding: 0 15px; background: #fff; }
-        .btn-standard { border: none; color: white; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        /* Cores */
+        .bg-green { background: #1a73e8; } /* Estilo Google Blue */
+        .bg-dark { background: #3c4043; }
+        .bg-calc { background: var(--primary); }
+        .bg-zap { background: #25d366; }
 
-        .bg-green { background-color: var(--primary); }
-        .bg-blue { background-color: var(--accent); }
-        .bg-whatsapp { background-color: #25d366; }
+        .toggle-box { background: #f1f3f4; border: 1px solid #dadce0; font-weight: 500; cursor: pointer; }
 
-        .toggle-container { background: #fff3e0; border: 1px solid #ffe0b2; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
-
-        /* Lista de Pontos */
+        /* Lista de Pontos Estilo Card */
         .ponto-card { 
-            background: #fff; border: 1px solid #ddd; padding: 12px; border-radius: 8px; 
-            margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; 
-            border-left: 5px solid #ccc;
+            background: #fff; border: 1px solid #e8eaed; padding: 10px; border-radius: 8px; 
+            margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+            border-left: 4px solid #1a73e8;
         }
-        .ponto-card.origem { border-left-color: var(--accent); background: #e3f2fd; }
+        .ponto-card:first-child { border-left-color: #f4b400; } /* Cor da Origem */
 
-        .resumo { background: #fff; border: 2px solid var(--primary); border-radius: 12px; padding: 15px; text-align: center; margin-top: 10px; display: none; }
-        
-        /* Aviso flutuante no mapa */
-        .map-tip {
-            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.6); color: white; padding: 8px 15px;
-            border-radius: 20px; font-size: 0.8rem; z-index: 1000; pointer-events: none;
-        }
+        .resumo-box { background: #e8f0fe; border-radius: 12px; padding: 15px; text-align: center; margin-top: 10px; display: none; border: 1px solid #1a73e8; }
+        .price-tag { font-size: 1.8rem; font-weight: bold; color: #174ea6; }
+
+        /* Dicas no Mapa */
+        .map-overlay { position: absolute; bottom: 20px; left: 400px; background: rgba(255,255,255,0.9); padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
 
         @media (min-width: 768px) { body { flex-direction: row; } .sidebar { height: 100vh; } }
     </style>
 </head>
 <body>
 
-<div class="map-tip">Toque no mapa para marcar uma fazenda ou local</div>
+<div class="map-overlay">Clique no mapa para marcar | Arraste para reordenar</div>
 
 <div class="sidebar">
-    <div style="text-align:center; margin-bottom:15px;">
-        <h3 style="margin:0; color:var(--accent);">🚛 LOGÍSTICA PRO</h3>
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+        <img src="https://www.gstatic.com/images/branding/product/2x/maps_96dp.png" width="30">
+        <h2 style="margin:0; font-size: 1.2rem; color: #5f6368;">Logística Pro</h2>
     </div>
 
-    <label style="font-size:0.7rem; font-weight:bold;">VALOR POR KM (R$):</label>
-    <input type="number" id="valorKm" class="input-standard" value="4.50" step="0.10">
+    <input type="number" id="valorKm" class="input-std" placeholder="Valor por KM (R$)" value="4.50">
+    
+    <input type="text" id="busca" class="input-std" placeholder="Pesquisar lugar ou cidade..." oninput="buscarEndereco()">
+    <div id="sugestoes" style="background:white; border:1px solid #ddd; display:none; max-height:120px; overflow-y:auto; margin-bottom:10px; border-radius:8px;"></div>
 
-    <label style="font-size:0.7rem; font-weight:bold;">BUSCAR POR NOME:</label>
-    <input type="text" id="busca" class="input-standard" placeholder="Pesquisar cidade..." oninput="buscarEndereco()">
-    <div id="sugestoes" style="background:white; border:1px solid #eee; display:none; max-height:120px; overflow-y:auto; margin-bottom:10px; border-radius:8px;"></div>
+    <button class="btn-std bg-green" onclick="colarCoordenada()">📋 COLAR COORDENADA</button>
+    <button class="btn-std bg-dark" onclick="minhaLocalizacao()">📍 USAR MEU GPS ATUAL</button>
 
-    <button class="btn-standard bg-green" onclick="colarCoordenada()">📍 COLAR COORDENADA</button>
-
-    <label class="input-standard toggle-container">
-        <input type="checkbox" id="retornoOrigem" checked style="margin-right:10px;"> IDA E VOLTA (CIRCULAR)
+    <label class="input-std toggle-box">
+        <input type="checkbox" id="retornoOrigem" checked style="margin-right:8px;"> IDA E VOLTA (CIRCULAR)
     </label>
 
-    <button class="btn-standard bg-blue" onclick="otimizarECalcular()">✨ CALCULAR ROTA AGORA</button>
+    <button class="btn-std bg-calc" onclick="otimizarECalcular()">🚀 CALCULAR ROTA E FRETE</button>
 
     <div id="lista"></div>
 
-    <div id="resultado" class="resumo">
-        <strong>TOTAL: <span id="dist">0</span> KM</strong>
-        <div style="font-size: 2.2rem; font-weight: bold; color: var(--primary);">R$ <span id="preco">0,00</span></div>
-        <button class="btn-standard bg-whatsapp" onclick="enviarZap()">ENVIAR WHATSAPP</button>
+    <div id="resultado" class="resumo-box">
+        <div style="font-size:0.8rem; color:#174ea6; font-weight:bold;">RESULTADO DA ROTA</div>
+        <div style="font-weight:bold; margin:5px 0;"><span id="dist">0</span> KM Totais</div>
+        <div class="price-tag">R$ <span id="preco">0,00</span></div>
+        <button class="btn-std bg-zap" onclick="enviarZap()">ENVIAR PARA WHATSAPP</button>
     </div>
 </div>
 
@@ -96,21 +92,38 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <script>
-    var map = L.map('map').setView([-15.78, -47.92], 4);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    
+    // Configuração do Mapa com Múltiplas Camadas (Clone Google)
+    var streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+    var satelliteMap = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'); // Camada Satélite Híbrida
+
+    var map = L.map('map', {
+        center: [-15.78, -47.92],
+        zoom: 4,
+        layers: [streetMap]
+    });
+
+    var baseMaps = {
+        "Mapa de Ruas": streetMap,
+        "Vista de Satélite": satelliteMap
+    };
+    L.control.layers(baseMaps).addTo(map);
+
     var pontos = [];
     var marcadores = [];
     var routingControl = null;
 
-    // --- FUNÇÃO: CLICAR NO MAPA PARA ADICIONAR ---
+    // Toque no mapa para adicionar
     map.on('click', function(e) {
-        let lat = e.latlng.lat;
-        let lon = e.latlng.lng;
-        adicionar(lat, lon, "Ponto marcado no mapa");
+        adicionar(e.latlng.lat, e.latlng.lng, "Ponto no Mapa");
     });
 
-    Sortable.create(document.getElementById('lista'), { animation: 150, onEnd: function() { reordenarManual(); } });
+    // Minha localização (GPS)
+    function minhaLocalizacao() {
+        map.locate({setView: true, maxZoom: 15});
+        map.on('locationfound', function(e) {
+            adicionar(e.latlng.lat, e.latlng.lng, "Minha Localização");
+        });
+    }
 
     async function buscarEndereco() {
         let q = document.getElementById('busca').value;
@@ -129,23 +142,43 @@
         try {
             const texto = await navigator.clipboard.readText();
             const coords = texto.match(/-?\d+\.\d+/g);
-            if (coords && coords.length >= 2) adicionar(coords[0], coords[1], "Ponto via Coordenada");
-        } catch (e) { alert("Erro ao acessar área de transferência."); }
+            if (coords && coords.length >= 2) adicionar(coords[0], coords[1], "Via Coordenada");
+        } catch (e) { alert("Erro ao ler área de transferência."); }
     }
 
     function adicionar(lat, lon, nome) {
         let latlng = L.latLng(parseFloat(lat), parseFloat(lon));
         pontos.push({ id: Date.now().toString(), latlng: latlng, nome: nome });
-        
         document.getElementById('busca').value = '';
         document.getElementById('sugestoes').style.display = 'none';
-        
         renderizar();
     }
 
     function remover(id) {
         pontos = pontos.filter(p => p.id !== id);
         renderizar();
+    }
+
+    function renderizar() {
+        let html = '';
+        marcadores.forEach(m => map.removeLayer(m));
+        marcadores = [];
+
+        pontos.forEach((p, i) => {
+            let label = i === 0 ? "🏁 <b>INÍCIO</b>" : `📍 Parada ${i}`;
+            html += `<div class="ponto-card" data-id="${p.id}">
+                <div style="font-size:0.85rem;">${label}<br><small>${p.nome.substring(0,25)}...</small></div>
+                <div style="display:flex; gap:5px;">
+                    <button onclick="verStreetView(${p.latlng.lat}, ${p.latlng.lng})" style="border:none; background:#f4b400; color:white; border-radius:4px; padding:4px 8px; cursor:pointer;">👀</button>
+                    <button onclick="remover('${p.id}')" style="color:#d93025; border:none; background:none; font-size:1.2rem; cursor:pointer;">✕</button>
+                </div>
+            </div>`;
+            
+            let m = L.marker(p.latlng).addTo(map).bindPopup(p.nome);
+            marcadores.push(m);
+        });
+        document.getElementById('lista').innerHTML = html;
+        Sortable.create(document.getElementById('lista'), { animation: 150, onEnd: reordenarManual });
     }
 
     function reordenarManual() {
@@ -156,29 +189,12 @@
         pontos = novaOrdem;
     }
 
-    function renderizar() {
-        let html = '';
-        // Limpa marcadores visuais antes de renderizar
-        marcadores.forEach(m => map.removeLayer(m));
-        marcadores = [];
-
-        pontos.forEach((p, i) => {
-            let classe = i === 0 ? "ponto-card origem" : "ponto-card";
-            let label = i === 0 ? "🚛 <b>BASE/CARGA</b>" : `📍 Parada ${i}`;
-            html += `<div class="${classe}" data-id="${p.id}">
-                <div>${label}<br><small>${p.nome.substring(0,25)}...</small></div>
-                <button onclick="remover('${p.id}')" style="color:red; border:none; background:none; font-size:1.2rem; cursor:pointer;">✕</button>
-            </div>`;
-            
-            let m = L.marker(p.latlng).addTo(map);
-            marcadores.push(m);
-        });
-        document.getElementById('lista').innerHTML = html;
+    function verStreetView(lat, lon) {
+        window.open(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`, '_blank');
     }
 
     function otimizarECalcular() {
-        if (pontos.length < 2) return alert("Marque pelo menos 2 locais.");
-
+        if (pontos.length < 2) return alert("Defina pelo menos 2 locais.");
         let rotaCalculo = [...pontos];
         if (document.getElementById('retornoOrigem').checked) rotaCalculo.push(pontos[0]);
 
@@ -189,11 +205,10 @@
             addWaypoints: false,
             show: false,
             router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: 'car' }),
-            lineOptions: { styles: [{ color: '#0d47a1', weight: 7 }] }
+            lineOptions: { styles: [{ color: '#1a73e8', weight: 6 }] }
         }).on('routesfound', function(e) {
-            let distKm = (e.routes[0].summary.totalDistance / 1000) * 1.08; 
+            let distKm = (e.routes[0].summary.totalDistance / 1000) * 1.05; // 5% margem pavimentada
             let total = distKm * parseFloat(document.getElementById('valorKm').value);
-
             document.getElementById('dist').innerText = distKm.toFixed(2);
             document.getElementById('preco').innerText = total.toLocaleString('pt-BR', {minimumFractionDigits: 2});
             document.getElementById('resultado').style.display = 'block';
@@ -202,7 +217,7 @@
     }
 
     function enviarZap() {
-        let msg = `*ORÇAMENTO DE FRETE PESADO*%0A` +
+        let msg = `*ORÇAMENTO DE FRETE PRO*%0A` +
                   `🏁 Paradas: ${pontos.length}%0A` +
                   `🛣️ Distância: ${document.getElementById('dist').innerText} KM%0A` +
                   `💰 *TOTAL: R$ ${document.getElementById('preco').innerText}*`;
