@@ -3,85 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Frete Master Pro - Sistema Integrado</title>
+    <title>Logística Pro - Entradas Inteligentes</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     
     <style>
-        :root { --primary: #1b5e20; --accent: #0d47a1; --field-height: 48px; }
+        :root { --primary: #1a73e8; --success: #1b5e20; --danger: #d93025; --field-height: 46px; }
         
-        body { font-family: 'Roboto', Arial, sans-serif; margin: 0; background: #f8f9fa; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        body { font-family: 'Roboto', Arial, sans-serif; margin: 0; background: #f1f3f4; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* Barra Lateral */
-        .sidebar { width: 100%; max-width: 380px; background: white; padding: 15px; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 1001; overflow-y: auto; box-sizing: border-box; }
+        .sidebar { width: 100%; max-width: 400px; background: white; padding: 15px; box-shadow: 2px 0 12px rgba(0,0,0,0.15); z-index: 1001; overflow-y: auto; box-sizing: border-box; }
         #map { flex-grow: 1; z-index: 1; cursor: crosshair; }
 
-        /* Padronização Total */
+        /* Padronização de Campos e Botões */
+        .input-group { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        label { font-size: 0.75rem; font-weight: bold; color: #5f6368; display: block; margin-bottom: 4px; text-transform: uppercase; }
+
         .input-std, .btn-std {
             width: 100%; height: var(--field-height); box-sizing: border-box;
-            border-radius: 8px; border: 1px solid #dadce0; margin-bottom: 10px;
-            font-size: 0.95rem; display: flex; align-items: center; justify-content: center;
+            border-radius: 8px; border: 1px solid #dadce0; margin-bottom: 8px;
+            font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
         }
-        input { padding: 0 12px; }
-        .btn-std { border: none; color: white; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        input { padding: 0 12px; outline-color: var(--primary); }
+        .btn-std { border: none; color: white; font-weight: bold; cursor: pointer; gap: 8px; transition: filter 0.2s; }
+        .btn-std:hover { filter: brightness(0.9); }
 
-        /* Cores */
-        .bg-green { background: #1a73e8; } /* Estilo Google Blue */
-        .bg-dark { background: #3c4043; }
-        .bg-calc { background: var(--primary); }
+        /* Cores Específicas */
+        .bg-blue { background: #1a73e8; }
+        .bg-plus { background: #8e24aa; }
+        .bg-coord { background: #455a64; }
+        .bg-calc { background: var(--success); width: 100%; height: 55px; font-size: 1.1rem; margin-top: 10px; }
+        .bg-clear { background: #fff; color: var(--danger); border: 1px solid var(--danger); margin-top: 5px; }
         .bg-zap { background: #25d366; }
 
-        .toggle-box { background: #f1f3f4; border: 1px solid #dadce0; font-weight: 500; cursor: pointer; }
-
-        /* Lista de Pontos Estilo Card */
+        /* Lista de Paradas */
+        #lista { margin-top: 15px; }
         .ponto-card { 
             background: #fff; border: 1px solid #e8eaed; padding: 10px; border-radius: 8px; 
             margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
-            border-left: 4px solid #1a73e8;
+            border-left: 5px solid var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        .ponto-card:first-child { border-left-color: #f4b400; } /* Cor da Origem */
+        .ponto-card.origem { border-left-color: #f4b400; background: #fffde7; }
 
-        .resumo-box { background: #e8f0fe; border-radius: 12px; padding: 15px; text-align: center; margin-top: 10px; display: none; border: 1px solid #1a73e8; }
-        .price-tag { font-size: 1.8rem; font-weight: bold; color: #174ea6; }
-
-        /* Dicas no Mapa */
-        .map-overlay { position: absolute; bottom: 20px; left: 400px; background: rgba(255,255,255,0.9); padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .resumo-box { background: #e8f0fe; border-radius: 12px; padding: 15px; text-align: center; margin-top: 10px; border: 2px solid var(--primary); }
+        .price-tag { font-size: 2rem; font-weight: bold; color: #174ea6; }
 
         @media (min-width: 768px) { body { flex-direction: row; } .sidebar { height: 100vh; } }
     </style>
 </head>
 <body>
 
-<div class="map-overlay">Clique no mapa para marcar | Arraste para reordenar</div>
-
 <div class="sidebar">
-    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-        <img src="https://www.gstatic.com/images/branding/product/2x/maps_96dp.png" width="30">
-        <h2 style="margin:0; font-size: 1.2rem; color: #5f6368;">Logística Pro</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <img src="https://www.gstatic.com/images/branding/product/2x/maps_96dp.png" width="28">
+            <h2 style="margin:0; font-size: 1.1rem; color: #3c4043;">Clone Maps v2</h2>
+        </div>
+        <input type="number" id="valorKm" style="width: 80px; height: 35px; text-align: center; border-radius: 5px; border: 1px solid #ccc;" value="4.50" title="Valor por KM">
     </div>
 
-    <input type="number" id="valorKm" class="input-std" placeholder="Valor por KM (R$)" value="4.50">
-    
-    <input type="text" id="busca" class="input-std" placeholder="Pesquisar lugar ou cidade..." oninput="buscarEndereco()">
-    <div id="sugestoes" style="background:white; border:1px solid #ddd; display:none; max-height:120px; overflow-y:auto; margin-bottom:10px; border-radius:8px;"></div>
+    <div class="input-group">
+        <label>1. Pesquisa por Nome/Endereço</label>
+        <input type="text" id="busca" class="input-std" placeholder="Ex: Rondonópolis, MT" oninput="pesquisaInteligente()">
+        <div id="sugestoes" style="background:white; border:1px solid #ddd; display:none; max-height:120px; overflow-y:auto; margin-bottom:10px; border-radius:8px;"></div>
+    </div>
 
-    <button class="btn-std bg-green" onclick="colarCoordenada()">📋 COLAR COORDENADA</button>
-    <button class="btn-std bg-dark" onclick="minhaLocalizacao()">📍 USAR MEU GPS ATUAL</button>
+    <div class="input-group">
+        <label>2. Por Coordenadas (Lat, Lon)</label>
+        <input type="text" id="inputCoord" class="input-std" placeholder="-15.456, -54.789">
+        <button class="btn-std bg-coord" onclick="adicionarPorCoord()">📍 ADICIONAR COORDENADA</button>
+    </div>
 
-    <label class="input-std toggle-box">
-        <input type="checkbox" id="retornoOrigem" checked style="margin-right:8px;"> IDA E VOLTA (CIRCULAR)
+    <div class="input-group">
+        <label>3. Por Plus Code (Código Google)</label>
+        <input type="text" id="inputPlus" class="input-std" placeholder="Ex: 87H2+9M">
+        <button class="btn-std bg-plus" onclick="adicionarPorPlus()">✖️ ADICIONAR PLUS CODE</button>
+    </div>
+
+    <label class="input-std" style="background: #f8f9fa; cursor: pointer;">
+        <input type="checkbox" id="retornoOrigem" checked style="margin-right:8px;"> IDA E VOLTA (RETORNO)
     </label>
 
-    <button class="btn-std bg-calc" onclick="otimizarECalcular()">🚀 CALCULAR ROTA E FRETE</button>
+    <button class="btn-std bg-calc" onclick="calcularRota()">🚀 CALCULAR FRETE</button>
+    <button class="btn-std bg-clear" onclick="limparLista()">🗑️ LIMPAR TODA A LISTA</button>
 
     <div id="lista"></div>
 
-    <div id="resultado" class="resumo-box">
-        <div style="font-size:0.8rem; color:#174ea6; font-weight:bold;">RESULTADO DA ROTA</div>
-        <div style="font-weight:bold; margin:5px 0;"><span id="dist">0</span> KM Totais</div>
+    <div id="resultado" class="resumo-box" style="display:none;">
+        <div style="font-weight:bold;"><span id="dist">0</span> KM TOTAIS</div>
         <div class="price-tag">R$ <span id="preco">0,00</span></div>
-        <button class="btn-std bg-zap" onclick="enviarZap()">ENVIAR PARA WHATSAPP</button>
+        <button class="btn-std bg-zap" onclick="enviarZap()">ENVIAR WHATSAPP</button>
     </div>
 </div>
 
@@ -92,58 +104,52 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <script>
-    // Configuração do Mapa com Múltiplas Camadas (Clone Google)
+    // Configurações do Mapa (Satélite + Ruas)
     var streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-    var satelliteMap = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'); // Camada Satélite Híbrida
-
-    var map = L.map('map', {
-        center: [-15.78, -47.92],
-        zoom: 4,
-        layers: [streetMap]
-    });
-
-    var baseMaps = {
-        "Mapa de Ruas": streetMap,
-        "Vista de Satélite": satelliteMap
-    };
-    L.control.layers(baseMaps).addTo(map);
+    var satelliteMap = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}');
+    var map = L.map('map', { center: [-15.78, -47.92], zoom: 4, layers: [streetMap] });
+    L.control.layers({"Mapa": streetMap, "Satélite": satelliteMap}).addTo(map);
 
     var pontos = [];
     var marcadores = [];
     var routingControl = null;
 
-    // Toque no mapa para adicionar
-    map.on('click', function(e) {
-        adicionar(e.latlng.lat, e.latlng.lng, "Ponto no Mapa");
-    });
+    // Clique no mapa
+    map.on('click', (e) => adicionar(e.latlng.lat, e.latlng.lng, "Marcado no Mapa"));
 
-    // Minha localização (GPS)
-    function minhaLocalizacao() {
-        map.locate({setView: true, maxZoom: 15});
-        map.on('locationfound', function(e) {
-            adicionar(e.latlng.lat, e.latlng.lng, "Minha Localização");
-        });
-    }
-
-    async function buscarEndereco() {
+    // FUNÇÕES DE ADIÇÃO
+    async function pesquisaInteligente() {
         let q = document.getElementById('busca').value;
         if (q.length < 4) return;
         let res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&countrycodes=br&limit=5`);
         let data = await res.json();
         let html = '';
         data.forEach(item => {
-            html += `<div style="padding:12px; border-bottom:1px solid #eee; cursor:pointer" onclick="adicionar('${item.lat}','${item.lon}','${item.display_name}')">${item.display_name}</div>`;
+            html += `<div style="padding:10px; border-bottom:1px solid #eee; cursor:pointer; font-size:0.8rem" onclick="adicionar('${item.lat}','${item.lon}','${item.display_name}')">${item.display_name}</div>`;
         });
         document.getElementById('sugestoes').innerHTML = html;
         document.getElementById('sugestoes').style.display = 'block';
     }
 
-    async function colarCoordenada() {
-        try {
-            const texto = await navigator.clipboard.readText();
-            const coords = texto.match(/-?\d+\.\d+/g);
-            if (coords && coords.length >= 2) adicionar(coords[0], coords[1], "Via Coordenada");
-        } catch (e) { alert("Erro ao ler área de transferência."); }
+    function adicionarPorCoord() {
+        let val = document.getElementById('inputCoord').value;
+        let coords = val.match(/-?\d+\.\d+/g);
+        if (coords && coords.length >= 2) {
+            adicionar(coords[0], coords[1], "Coordenada Manual");
+            document.getElementById('inputCoord').value = '';
+        } else alert("Formato inválido! Use: latitude, longitude");
+    }
+
+    async function adicionarPorPlus() {
+        let code = document.getElementById('inputPlus').value;
+        if (!code) return;
+        // Simulação de busca Plus Code via Nominatim (Plus codes funcionam melhor com API Key do Google, mas usamos geocoding como fallback)
+        let res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(code)}`);
+        let data = await res.json();
+        if (data.length > 0) {
+            adicionar(data[0].lat, data[0].lon, "Plus Code: " + code);
+            document.getElementById('inputPlus').value = '';
+        } else alert("Plus Code não encontrado ou requer API Key do Google.");
     }
 
     function adicionar(lat, lon, nome) {
@@ -152,6 +158,15 @@
         document.getElementById('busca').value = '';
         document.getElementById('sugestoes').style.display = 'none';
         renderizar();
+    }
+
+    function limparLista() {
+        if(confirm("Deseja apagar todos os pontos e zerar o mapa?")) {
+            pontos = [];
+            if (routingControl) map.removeControl(routingControl);
+            renderizar();
+            document.getElementById('resultado').style.display = 'none';
+        }
     }
 
     function remover(id) {
@@ -165,36 +180,30 @@
         marcadores = [];
 
         pontos.forEach((p, i) => {
-            let label = i === 0 ? "🏁 <b>INÍCIO</b>" : `📍 Parada ${i}`;
-            html += `<div class="ponto-card" data-id="${p.id}">
-                <div style="font-size:0.85rem;">${label}<br><small>${p.nome.substring(0,25)}...</small></div>
-                <div style="display:flex; gap:5px;">
-                    <button onclick="verStreetView(${p.latlng.lat}, ${p.latlng.lng})" style="border:none; background:#f4b400; color:white; border-radius:4px; padding:4px 8px; cursor:pointer;">👀</button>
-                    <button onclick="remover('${p.id}')" style="color:#d93025; border:none; background:none; font-size:1.2rem; cursor:pointer;">✕</button>
+            let classe = i === 0 ? "ponto-card origem" : "ponto-card";
+            let label = i === 0 ? "🏁 <b>ORIGEM</b>" : `📍 Parada ${i}`;
+            html += `<div class="${classe}" data-id="${p.id}">
+                <div style="font-size:0.8rem;">${label}<br><small>${p.nome.substring(0,25)}...</small></div>
+                <div style="display:flex; gap:4px;">
+                    <button onclick="window.open('https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${p.latlng.lat},${p.latlng.lng}')" title="Street View" style="border:none; background:#f4b400; color:white; border-radius:4px; padding:4px 8px; cursor:pointer;">👀</button>
+                    <button onclick="remover('${p.id}')" style="color:var(--danger); border:none; background:none; font-size:1.1rem; cursor:pointer;">✕</button>
                 </div>
             </div>`;
-            
-            let m = L.marker(p.latlng).addTo(map).bindPopup(p.nome);
+            let m = L.marker(p.latlng).addTo(map);
             marcadores.push(m);
         });
         document.getElementById('lista').innerHTML = html;
-        Sortable.create(document.getElementById('lista'), { animation: 150, onEnd: reordenarManual });
+        Sortable.create(document.getElementById('lista'), { animation: 150, onEnd: () => {
+            let novaOrdem = [];
+            document.querySelectorAll('.ponto-card').forEach(item => {
+                novaOrdem.push(pontos.find(p => p.id === item.dataset.id));
+            });
+            pontos = novaOrdem;
+        }});
     }
 
-    function reordenarManual() {
-        let novaOrdem = [];
-        document.querySelectorAll('.ponto-card').forEach(item => {
-            novaOrdem.push(pontos.find(p => p.id === item.dataset.id));
-        });
-        pontos = novaOrdem;
-    }
-
-    function verStreetView(lat, lon) {
-        window.open(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`, '_blank');
-    }
-
-    function otimizarECalcular() {
-        if (pontos.length < 2) return alert("Defina pelo menos 2 locais.");
+    function calcularRota() {
+        if (pontos.length < 2) return alert("Adicione ao menos 2 locais.");
         let rotaCalculo = [...pontos];
         if (document.getElementById('retornoOrigem').checked) rotaCalculo.push(pontos[0]);
 
@@ -202,12 +211,11 @@
 
         routingControl = L.Routing.control({
             waypoints: rotaCalculo.map(p => p.latlng),
-            addWaypoints: false,
-            show: false,
+            addWaypoints: false, show: false,
             router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: 'car' }),
-            lineOptions: { styles: [{ color: '#1a73e8', weight: 6 }] }
+            lineOptions: { styles: [{ color: '#1a73e8', weight: 6, opacity: 0.7 }] }
         }).on('routesfound', function(e) {
-            let distKm = (e.routes[0].summary.totalDistance / 1000) * 1.05; // 5% margem pavimentada
+            let distKm = (e.routes[0].summary.totalDistance / 1000) * 1.07; // 7% margem bitruck
             let total = distKm * parseFloat(document.getElementById('valorKm').value);
             document.getElementById('dist').innerText = distKm.toFixed(2);
             document.getElementById('preco').innerText = total.toLocaleString('pt-BR', {minimumFractionDigits: 2});
@@ -217,10 +225,10 @@
     }
 
     function enviarZap() {
-        let msg = `*ORÇAMENTO DE FRETE PRO*%0A` +
+        let msg = `*ORÇAMENTO DE FRETE*%0A` +
                   `🏁 Paradas: ${pontos.length}%0A` +
                   `🛣️ Distância: ${document.getElementById('dist').innerText} KM%0A` +
-                  `💰 *TOTAL: R$ ${document.getElementById('preco').innerText}*`;
+                  `💰 *VALOR TOTAL: R$ ${document.getElementById('preco').innerText}*`;
         window.open(`https://api.whatsapp.com/send?text=${msg}`);
     }
 </script>
