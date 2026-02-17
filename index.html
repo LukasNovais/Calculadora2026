@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Frete Pesado Pro - Trucado & Bitruck</title>
+    <title>Frete Master - Seleção Direta</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
@@ -12,31 +12,23 @@
         :root { 
             --primary: #1b5e20; 
             --accent: #0d47a1; 
-            --danger: #b71c1c; 
             --field-height: 50px;
         }
         
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
         .sidebar { width: 100%; max-width: 400px; background: white; padding: 20px; box-shadow: 2px 0 15px rgba(0,0,0,0.1); z-index: 10; overflow-y: auto; box-sizing: border-box; }
-        #map { flex-grow: 1; z-index: 1; }
+        #map { flex-grow: 1; z-index: 1; cursor: crosshair; } /* Cursor de precisão no mapa */
 
         .input-standard, .btn-standard {
-            width: 100%;
-            height: var(--field-height);
-            box-sizing: border-box;
-            border-radius: 8px;
-            font-size: 1rem;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #ccc;
+            width: 100%; height: var(--field-height);
+            box-sizing: border-box; border-radius: 8px;
+            font-size: 1rem; margin-bottom: 12px;
+            display: flex; align-items: center; justify-content: center; border: 1px solid #ccc;
         }
 
         input[type="number"], input[type="text"] { padding: 0 15px; background: #fff; }
-
-        .btn-standard { border: none; color: white; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-standard { border: none; color: white; font-weight: bold; cursor: pointer; text-transform: uppercase; }
 
         .bg-green { background-color: var(--primary); }
         .bg-blue { background-color: var(--accent); }
@@ -44,54 +36,57 @@
 
         .toggle-container { background: #fff3e0; border: 1px solid #ffe0b2; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
 
-        #lista { margin-top: 5px; }
+        /* Lista de Pontos */
         .ponto-card { 
             background: #fff; border: 1px solid #ddd; padding: 12px; border-radius: 8px; 
             margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; 
-            cursor: grab; border-left: 5px solid #ccc;
+            border-left: 5px solid #ccc;
         }
         .ponto-card.origem { border-left-color: var(--accent); background: #e3f2fd; }
 
         .resumo { background: #fff; border: 2px solid var(--primary); border-radius: 12px; padding: 15px; text-align: center; margin-top: 10px; display: none; }
-        .valor { font-size: 2.2rem; font-weight: bold; color: var(--primary); }
+        
+        /* Aviso flutuante no mapa */
+        .map-tip {
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.6); color: white; padding: 8px 15px;
+            border-radius: 20px; font-size: 0.8rem; z-index: 1000; pointer-events: none;
+        }
 
         @media (min-width: 768px) { body { flex-direction: row; } .sidebar { height: 100vh; } }
     </style>
 </head>
 <body>
 
+<div class="map-tip">Toque no mapa para marcar uma fazenda ou local</div>
+
 <div class="sidebar">
     <div style="text-align:center; margin-bottom:15px;">
-        <h3 style="margin:0; color:var(--accent);">🚛 ROTA PESADA</h3>
-        <small style="color:#666;">Trucado | Bitruck | Rodovia</small>
+        <h3 style="margin:0; color:var(--accent);">🚛 LOGÍSTICA PRO</h3>
     </div>
 
-    <label style="font-size:0.7rem; font-weight:bold; color:#555;">VALOR POR KM (R$):</label>
+    <label style="font-size:0.7rem; font-weight:bold;">VALOR POR KM (R$):</label>
     <input type="number" id="valorKm" class="input-standard" value="4.50" step="0.10">
 
-    <label style="font-size:0.7rem; font-weight:bold; color:#555;">ADICIONAR LOCALIDADE:</label>
-    <input type="text" id="busca" class="input-standard" placeholder="Pesquisar Cidade ou Endereço..." oninput="buscarEndereco()">
-    <div id="sugestoes" style="background:white; border:1px solid #eee; display:none; max-height:150px; overflow-y:auto; margin-bottom:10px; border-radius:8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"></div>
+    <label style="font-size:0.7rem; font-weight:bold;">BUSCAR POR NOME:</label>
+    <input type="text" id="busca" class="input-standard" placeholder="Pesquisar cidade..." oninput="buscarEndereco()">
+    <div id="sugestoes" style="background:white; border:1px solid #eee; display:none; max-height:120px; overflow-y:auto; margin-bottom:10px; border-radius:8px;"></div>
 
-    <button class="btn-standard bg-green" onclick="colarCoordenada()">📍 COLAR COORDENADA GOOGLE</button>
+    <button class="btn-standard bg-green" onclick="colarCoordenada()">📍 COLAR COORDENADA</button>
 
     <label class="input-standard toggle-container">
-        <input type="checkbox" id="retornoOrigem" checked style="margin-right:10px;"> IDA E VOLTA (RETORNO À BASE)
+        <input type="checkbox" id="retornoOrigem" checked style="margin-right:10px;"> IDA E VOLTA (CIRCULAR)
     </label>
 
-    <button class="btn-standard bg-blue" onclick="otimizarECalcular()">✨ CALCULAR ROTA PARA CAMINHÃO</button>
+    <button class="btn-standard bg-blue" onclick="otimizarECalcular()">✨ CALCULAR ROTA AGORA</button>
 
     <div id="lista"></div>
 
     <div id="resultado" class="resumo">
-        <div id="tipoRota" style="font-weight:bold; color:var(--accent); font-size:0.8rem; margin-bottom:5px;"></div>
-        <div style="font-size: 0.9rem; color:#444;">Distância Total Estimada:</div>
-        <strong><span id="dist">0</span> KM</strong>
-        <div class="valor">R$ <span id="preco">0,00</span></div>
-        <button class="btn-standard bg-whatsapp" onclick="enviarZap()">ENVIAR ORÇAMENTO VIA WHATSAPP</button>
+        <strong>TOTAL: <span id="dist">0</span> KM</strong>
+        <div style="font-size: 2.2rem; font-weight: bold; color: var(--primary);">R$ <span id="preco">0,00</span></div>
+        <button class="btn-standard bg-whatsapp" onclick="enviarZap()">ENVIAR WHATSAPP</button>
     </div>
-
-    <button onclick="window.location.reload()" style="width:100%; background:none; border:none; color:#999; margin-top:15px; cursor:pointer; text-decoration:underline; font-size:0.8rem;">Zerar Mapa e Dados</button>
 </div>
 
 <div id="map"></div>
@@ -103,8 +98,17 @@
 <script>
     var map = L.map('map').setView([-15.78, -47.92], 4);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    
     var pontos = [];
+    var marcadores = [];
     var routingControl = null;
+
+    // --- FUNÇÃO: CLICAR NO MAPA PARA ADICIONAR ---
+    map.on('click', function(e) {
+        let lat = e.latlng.lat;
+        let lon = e.latlng.lng;
+        adicionar(lat, lon, "Ponto marcado no mapa");
+    });
 
     Sortable.create(document.getElementById('lista'), { animation: 150, onEnd: function() { reordenarManual(); } });
 
@@ -125,15 +129,17 @@
         try {
             const texto = await navigator.clipboard.readText();
             const coords = texto.match(/-?\d+\.\d+/g);
-            if (coords && coords.length >= 2) adicionar(coords[0], coords[1], "Localização Rural/Coordenada");
-        } catch (e) { alert("Acesso à área de transferência negado."); }
+            if (coords && coords.length >= 2) adicionar(coords[0], coords[1], "Ponto via Coordenada");
+        } catch (e) { alert("Erro ao acessar área de transferência."); }
     }
 
     function adicionar(lat, lon, nome) {
         let latlng = L.latLng(parseFloat(lat), parseFloat(lon));
         pontos.push({ id: Date.now().toString(), latlng: latlng, nome: nome });
+        
         document.getElementById('busca').value = '';
         document.getElementById('sugestoes').style.display = 'none';
+        
         renderizar();
     }
 
@@ -152,52 +158,43 @@
 
     function renderizar() {
         let html = '';
+        // Limpa marcadores visuais antes de renderizar
+        marcadores.forEach(m => map.removeLayer(m));
+        marcadores = [];
+
         pontos.forEach((p, i) => {
             let classe = i === 0 ? "ponto-card origem" : "ponto-card";
             let label = i === 0 ? "🚛 <b>BASE/CARGA</b>" : `📍 Parada ${i}`;
             html += `<div class="${classe}" data-id="${p.id}">
-                <div>${label}<br><small>${p.nome.substring(0,30)}...</small></div>
+                <div>${label}<br><small>${p.nome.substring(0,25)}...</small></div>
                 <button onclick="remover('${p.id}')" style="color:red; border:none; background:none; font-size:1.2rem; cursor:pointer;">✕</button>
             </div>`;
+            
+            let m = L.marker(p.latlng).addTo(map);
+            marcadores.push(m);
         });
         document.getElementById('lista').innerHTML = html;
     }
 
     function otimizarECalcular() {
-        if (pontos.length < 2) return alert("Defina pelo menos a Origem e um Destino.");
+        if (pontos.length < 2) return alert("Marque pelo menos 2 locais.");
 
         let rotaCalculo = [...pontos];
-        if (document.getElementById('retornoOrigem').checked) {
-            rotaCalculo.push(pontos[0]);
-            document.getElementById('tipoRota').innerText = "ROTA CIRCULAR: IDA E VOLTA À BASE";
-        } else {
-            document.getElementById('tipoRota').innerText = "ROTA LINEAR: APENAS IDA";
-        }
+        if (document.getElementById('retornoOrigem').checked) rotaCalculo.push(pontos[0]);
 
         if (routingControl) map.removeControl(routingControl);
 
-        // O motor OSRM (padrão) já prioriza rodovias em trajetos longos
         routingControl = L.Routing.control({
             waypoints: rotaCalculo.map(p => p.latlng),
             addWaypoints: false,
-            draggableWaypoints: false,
             show: false,
-            router: L.Routing.osrmv1({
-                serviceUrl: 'https://router.project-osrm.org/route/v1',
-                profile: 'car' // OSRM prioriza estradas principais para carros/caminhões leves
-            }),
-            lineOptions: { styles: [{ color: '#0d47a1', weight: 7, opacity: 0.8 }] }
+            router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: 'car' }),
+            lineOptions: { styles: [{ color: '#0d47a1', weight: 7 }] }
         }).on('routesfound', function(e) {
-            let distKm = e.routes[0].summary.totalDistance / 1000;
-            
-            // Para caminhão trucado/bitruck, a margem de segurança deve considerar
-            // que o veículo não faz manobras bruscas e percorre mais distância em acessos.
-            let kmFinal = distKm * 1.08; 
-            
-            let vKm = parseFloat(document.getElementById('valorKm').value);
-            let total = kmFinal * vKm;
+            let distKm = (e.routes[0].summary.totalDistance / 1000) * 1.08; 
+            let total = distKm * parseFloat(document.getElementById('valorKm').value);
 
-            document.getElementById('dist').innerText = kmFinal.toFixed(2);
+            document.getElementById('dist').innerText = distKm.toFixed(2);
             document.getElementById('preco').innerText = total.toLocaleString('pt-BR', {minimumFractionDigits: 2});
             document.getElementById('resultado').style.display = 'block';
             map.fitBounds(L.latLngBounds(rotaCalculo.map(p => p.latlng)));
@@ -205,11 +202,10 @@
     }
 
     function enviarZap() {
-        let msg = `*ORÇAMENTO DE FRETE PESADO*%0A%0A` +
-                  `🏁 Paradas Planejadas: ${pontos.length}%0A` +
-                  `🛣️ Distância Estimada: ${document.getElementById('dist').innerText} KM%0A` +
-                  `💰 *VALOR TOTAL: R$ ${document.getElementById('preco').innerText}*%0A%0A` +
-                  `_Configurado para veículo Trucado / Bitruck via Rodovias Pavimentadas._`;
+        let msg = `*ORÇAMENTO DE FRETE PESADO*%0A` +
+                  `🏁 Paradas: ${pontos.length}%0A` +
+                  `🛣️ Distância: ${document.getElementById('dist').innerText} KM%0A` +
+                  `💰 *TOTAL: R$ ${document.getElementById('preco').innerText}*`;
         window.open(`https://api.whatsapp.com/send?text=${msg}`);
     }
 </script>
