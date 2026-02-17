@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Logística Intelligence Pro - vFinal</title>
+    <title>Logística Intelligence Pro - TOTAL</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
@@ -18,17 +18,17 @@
         .section { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
         .title { font-size: 0.75rem; font-weight: 800; color: #555; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
 
-        /* Correção da Pesquisa Inteligente */
-        .search-container { position: relative; margin-bottom: 15px; }
+        /* Pesquisa Inteligente */
+        .search-container { position: relative; margin-bottom: 10px; }
         .input-std { width: 100%; height: 38px; border: 1px solid #bdbdbd; border-radius: 6px; padding: 0 10px; box-sizing: border-box; font-size: 13px; font-weight: 600; }
         #sugestoes { 
             position: absolute; top: 40px; left: 0; width: 100%; 
-            background: white; border: 1px solid #ccc; border-radius: 0 0 6px 6px;
-            max-height: 200px; overflow-y: auto; display: none; z-index: 2000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            background: white; border: 1px solid #ccc; border-radius: 6px;
+            max-height: 250px; overflow-y: auto; display: none; z-index: 3000;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
         }
-        .sugestao-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 12px; color: #333; }
-        .sugestao-item:hover { background: #f0f4ff; }
+        .sugestao-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 12px; }
+        .sugestao-item:hover { background: #e3f2fd; }
 
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         
@@ -38,30 +38,28 @@
 
         .btn { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; gap: 5px; }
         .bg-blue { background: var(--google-blue); color: white; }
-        .bg-calc { background: var(--success); color: white; font-size: 14px; height: 48px; margin-top: 10px; }
+        .bg-calc { background: var(--success); color: white; font-size: 14px; height: 48px; }
         
         .ponto-card { background: #f8f9fa; border: 1px solid #ddd; padding: 10px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-left: 6px solid var(--google-blue); }
-        .ponto-card.origem { border-left-color: var(--warning); }
 
         .dre-box { background: #1a1a1a; color: #fff; border-radius: 12px; padding: 15px; margin-top: 15px; }
         .dre-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #333; font-size: 13px; }
-        .lucro-val { font-size: 19px; color: #00e676; font-weight: bold; }
+        .lucro-val { font-size: 20px; color: #00e676; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
-    <div style="text-align:center; padding-bottom:10px; border-bottom: 2px solid #f0f2f5; margin-bottom: 15px;">
+    <div style="text-align:center; padding-bottom:10px;">
         <h2 style="margin:0; color: var(--primary); font-size: 1.1rem;">MASTER LOGÍSTICA INTEL</h2>
     </div>
 
     <div class="section">
-        <span class="title">📍 Localização e Destinos</span>
+        <span class="title">📍 Destinos (Busca ou Clique no Mapa)</span>
         <div class="search-container">
-            <input type="text" id="busca" class="input-std" placeholder="Digite cidade, posto ou cliente..." oninput="pesquisar()">
+            <input type="text" id="busca" class="input-std" placeholder="Digite e aperte ENTER..." onkeypress="handleEnter(event)">
             <div id="sugestoes"></div>
         </div>
-        
         <div class="grid">
             <input type="text" id="inputCoord" class="input-std" placeholder="Lat, Lon">
             <input type="text" id="inputPlus" class="input-std" placeholder="Plus Code">
@@ -73,8 +71,7 @@
     </div>
 
     <div class="section">
-        <span class="title">⚙️ Negociação & Custos</span>
-        
+        <span class="title">⚙️ Negociação e Custos</span>
         <div class="route-type">
             <div id="optIda" class="route-option active" onclick="setTipoRota('ida')">SÓ IDA</div>
             <div id="optIdaVolta" class="route-option" onclick="setTipoRota('idavolta')">IDA E VOLTA</div>
@@ -88,27 +85,22 @@
             <div class="field"><label style="font-size:9px; font-weight:bold;">EIXOS</label><input type="number" id="eixos" class="input-std" value="9"></div>
             <div class="field"><label style="font-size:9px; font-weight:bold;">COMISSÃO %</label><input type="number" id="comissao" class="input-std" value="12"></div>
         </div>
-        
-        <button class="btn bg-calc" onclick="calcularTudo()">🚀 CALCULAR ROTA</button>
-        
-        <div class="grid" style="margin-top:5px;">
-            <button class="btn" style="background:var(--warning); color:black;" onclick="document.getElementById('fileInput').click()">📂 JSON</button>
-            <button class="btn" style="background:white; color:red; border:1px solid red;" onclick="limparTudo()">🗑️ LIMPAR</button>
-        </div>
-        <input type="file" id="fileInput" style="display:none;" accept=".json">
+        <button class="btn bg-calc" onclick="calcularTudo()">🚀 CALCULAR ROTA E DRE</button>
+        <button class="btn" style="background:white; color:red; border:1px solid red; margin-top:5px;" onclick="limparTudo()">🗑️ LIMPAR TUDO</button>
     </div>
 
     <div id="listaAtiva"></div>
 
     <div id="resultadoDRE" class="dre-box" style="display:none;">
-        <div class="dre-row"><span>KM Total (Ida+Volta):</span><span id="resKm">0</span></div>
+        <div class="dre-row"><span>KM Ida:</span><span id="resKmIda">0</span></div>
+        <div class="dre-row"><span>KM Total (Giro):</span><span id="resKmTotal">0</span></div>
+        <div class="dre-row"><span>Ref. Mínima ANTT:</span><span id="resAntt" style="color:var(--warning)">R$ 0,00</span></div>
         <div class="dre-row"><span>FRETE BRUTO:</span><span id="resBruto" style="color:#81c784; font-weight:bold;">R$ 0,00</span></div>
-        <div class="dre-row"><span>Custo Diesel:</span><span id="resDiesel" style="color:#ff8a80;">R$ 0,00</span></div>
-        <div class="dre-row"><span>Custo Pedágio:</span><span id="resPedagio" style="color:#ff8a80;">R$ 0,00</span></div>
+        <div class="dre-row"><span>Custo Diesel/Arla:</span><span id="resDiesel" style="color:#ff8a80;">- R$ 0,00</span></div>
         <div class="dre-row" style="border:none; margin-top:10px; padding-top:10px; border-top:1px solid #444;">
             <span>LUCRO LÍQUIDO:</span><span id="resLucro" class="lucro-val">R$ 0,00</span>
         </div>
-        <button class="btn" style="background:#25d366; color:white; margin-top:10px;" onclick="enviarZap()">📱 WHATSAPP</button>
+        <button class="btn" style="background:#25d366; color:white; margin-top:10px;" onclick="enviarZap()">📱 ENVIAR WHATSAPP</button>
     </div>
 </div>
 
@@ -126,7 +118,7 @@
     var routingControl = null;
     var tipoRota = 'ida';
 
-    // CLIQUE NO MAPA MANTIDO
+    // FUNÇÃO: Clique no mapa para adicionar ponto
     map.on('click', e => adicionar(e.latlng.lat, e.latlng.lng, "Ponto no Mapa"));
 
     function setTipoRota(t) {
@@ -135,26 +127,24 @@
         document.getElementById('optIdaVolta').classList.toggle('active', t === 'idavolta');
     }
 
-    // PESQUISA INTELIGENTE CORRIGIDA (Z-INDEX E FLUXO)
-    function pesquisar() {
-        let q = document.getElementById('busca').value;
-        let sug = document.getElementById('sugestoes');
-        if(q.length < 3) { sug.style.display = 'none'; return; }
-        
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&countrycodes=br&limit=6`)
-            .then(r => r.json()).then(data => {
-                let h = '';
-                data.forEach(i => {
-                    h += `<div class="sugestao-item" onclick="adicionar(${i.lat},${i.lon},'${i.display_name}')">${i.display_name}</div>`;
+    // FUNÇÃO: Pesquisa com ENTER
+    function handleEnter(e) {
+        if(e.key === 'Enter') {
+            let q = document.getElementById('busca').value;
+            if(q.length < 3) return;
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&countrycodes=br&limit=5`)
+                .then(r => r.json()).then(data => {
+                    let h = '';
+                    data.forEach(i => h += `<div class="sugestao-item" onclick="adicionar(${i.lat},${i.lon},'${i.display_name}')">${i.display_name}</div>`);
+                    let sug = document.getElementById('sugestoes');
+                    sug.innerHTML = h;
+                    sug.style.display = h ? 'block' : 'none';
                 });
-                sug.innerHTML = h;
-                sug.style.display = h ? 'block' : 'none';
-            });
+        }
     }
 
     function adicionar(lat, lon, nome) {
-        let latlng = L.latLng(parseFloat(lat), parseFloat(lon));
-        pontos.push({ id: Date.now().toString(), latlng: latlng, nome: nome });
+        pontos.push({ id: Date.now(), latlng: L.latLng(lat, lon), nome: nome });
         document.getElementById('sugestoes').style.display = 'none';
         document.getElementById('busca').value = '';
         renderLista();
@@ -167,7 +157,7 @@
         pontos.forEach((p, i) => {
             html += `<div class="ponto-card ${i==0?'origem':''}">
                 <span><b>${i==0?'🏁':'📍'}</b> ${p.nome.substring(0,35)}</span>
-                <button onclick="remover('${p.id}')" style="border:none; background:none; color:red; cursor:pointer;">✕</button>
+                <button onclick="remover(${p.id})" style="border:none; background:none; color:red; cursor:pointer; font-weight:bold;">✕</button>
             </div>`;
             marcadores.push(L.marker(p.latlng).addTo(map));
         });
@@ -176,7 +166,7 @@
 
     function calcularTudo() {
         if(pontos.length < 2) return alert("Adicione no mínimo Origem e Destino.");
-        let rotaFisica = [...pontos, pontos[0]]; // Sempre ida e volta para custo
+        let rotaFisica = [...pontos, pontos[0]]; // Sempre ida e volta para custo real
 
         if(routingControl) map.removeControl(routingControl);
 
@@ -188,11 +178,14 @@
             let kmTotal = (e.routes[0].summary.totalDistance / 1000) * 1.05;
             let kmIda = kmTotal / 2;
 
-            // LÓGICA DE FRETE KM RECUPERADA
+            // 1. Frete Bruto (Manual via Campo Valor KM)
             let vKm = parseFloat(document.getElementById('valorKm').value);
             let freteBruto = (tipoRota === 'ida') ? (kmIda * vKm) : (kmTotal * vKm);
 
-            // Diesel Misto (Ida Carregado / Volta Vazio)
+            // 2. Referência ANTT (Lógica base recuperada)
+            let refAntt = (kmIda * 5.80) + 450; // Estimativa média ANTT para carga lotação
+
+            // 3. Custos (Diesel Misto)
             let lIda = kmIda / parseFloat(document.getElementById('mediaC').value);
             let lVolta = kmIda / parseFloat(document.getElementById('mediaV').value);
             let custoD = (lIda + lVolta) * parseFloat(document.getElementById('diesel').value);
@@ -201,10 +194,11 @@
             let com = freteBruto * (parseFloat(document.getElementById('comissao').value) / 100);
             let lucro = freteBruto - custoD - ped - com;
 
-            document.getElementById('resKm').innerText = kmTotal.toFixed(1) + " km";
+            document.getElementById('resKmIda').innerText = kmIda.toFixed(1) + " km";
+            document.getElementById('resKmTotal').innerText = kmTotal.toFixed(1) + " km";
+            document.getElementById('resAntt').innerText = "R$ " + refAntt.toLocaleString('pt-BR');
             document.getElementById('resBruto').innerText = "R$ " + freteBruto.toLocaleString('pt-BR', {minimumFractionDigits: 2});
             document.getElementById('resDiesel').innerText = "R$ " + custoD.toFixed(2);
-            document.getElementById('resPedagio').innerText = "R$ " + ped.toFixed(2);
             document.getElementById('resLucro').innerText = "R$ " + lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2});
             
             document.getElementById('resultadoDRE').style.display = 'block';
@@ -228,7 +222,7 @@
     }
 
     function enviarZap() {
-        let msg = `*RELATÓRIO DE FRETE*%0A🛣️ KM: ${document.getElementById('resKm').innerText}%0A💰 *VALOR: ${document.getElementById('resBruto').innerText}*%0A✅ LUCRO: ${document.getElementById('resLucro').innerText}`;
+        let msg = `*RELATÓRIO DE FRETE*%0A🛣️ KM Ida: ${document.getElementById('resKmIda').innerText}%0A💰 *VALOR: ${document.getElementById('resBruto').innerText}*%0A✅ LUCRO: ${document.getElementById('resLucro').innerText}`;
         window.open(`https://api.whatsapp.com/send?text=${msg}`);
     }
 </script>
