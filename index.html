@@ -2,90 +2,98 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Logística Master Intelligence - Versão Completa</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Logística Intelligence Pro - MESTRE</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a237e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    
     <style>
-        :root { --primary: #1a237e; --accent: #00c853; --google-blue: #1a73e8; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; background: #f0f2f5; }
+        :root { --primary: #1a237e; --google-blue: #1a73e8; --success: #2e7d32; --warning: #fbbc04; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background: #f0f2f5; }
         
-        /* Sidebar Larga para todos os campos */
-        .sidebar { width: 450px; background: white; padding: 15px; box-shadow: 5px 0 15px rgba(0,0,0,0.2); overflow-y: auto; z-index: 1000; }
+        /* Barra Lateral Robusta */
+        .sidebar { width: 450px; background: white; padding: 15px; box-shadow: 5px 0 15px rgba(0,0,0,0.2); overflow-y: auto; z-index: 1000; flex-shrink: 0; }
         #map { flex-grow: 1; cursor: crosshair; }
 
-        .section { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
-        .title { font-size: 0.75rem; font-weight: bold; color: #555; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+        .section { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .title { font-size: 0.75rem; font-weight: 800; color: #555; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
 
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .input-std { width: 100%; height: 38px; border: 1px solid #bdbdbd; border-radius: 4px; padding: 5px 10px; box-sizing: border-box; font-size: 13px; margin-bottom: 5px; }
+        .input-std { width: 100%; height: 38px; border: 1px solid #bdbdbd; border-radius: 6px; padding: 0 10px; box-sizing: border-box; font-size: 13px; margin-bottom: 5px; font-weight: 600; outline-color: var(--google-blue); }
         
-        .btn { width: 100%; padding: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+        .btn:active { transform: scale(0.98); }
         .bg-blue { background: var(--google-blue); color: white; }
-        .bg-import { background: #fbbc04; color: black; }
-        .bg-calc { background: var(--accent); color: white; font-size: 14px; height: 45px; }
-        .bg-clear { background: #fff; color: #d32f2f; border: 1px solid #d32f2f; }
+        .bg-import { background: var(--warning); color: black; }
+        .bg-calc { background: var(--success); color: white; font-size: 14px; height: 50px; margin-top: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .bg-clear { background: #fff; color: #d32f2f; border: 1px solid #d32f2f; margin-top: 5px; }
 
-        /* Lista de Paradas */
-        .ponto-card { background: #f8f9fa; border: 1px solid #ddd; padding: 8px; border-radius: 6px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-left: 5px solid var(--google-blue); }
-        .ponto-card.origem { border-left-color: #fbbc04; }
+        /* Lista de Destinos Reordenável */
+        .ponto-card { background: #f8f9fa; border: 1px solid #ddd; padding: 10px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-left: 6px solid var(--google-blue); cursor: grab; }
+        .ponto-card.origem { border-left-color: var(--warning); background: #fffde7; }
 
-        /* Painel Financeiro */
-        .dre-box { background: #212121; color: #fff; border-radius: 8px; padding: 15px; margin-top: 10px; }
-        .dre-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #444; font-size: 13px; }
-        .lucro-val { font-size: 18px; color: #00e676; font-weight: bold; }
+        /* Painel Financeiro DRE */
+        .dre-box { background: #1a1a1a; color: #fff; border-radius: 12px; padding: 18px; margin-top: 15px; border: 1px solid #333; }
+        .dre-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #333; font-size: 13px; }
+        .lucro-val { font-size: 20px; color: #00e676; font-weight: bold; }
 
-        #sugestoes { background: white; border: 1px solid #ccc; max-height: 150px; overflow-y: auto; display: none; }
-        .fav-list { max-height: 100px; overflow-y: auto; background: #fffde7; border-radius: 4px; padding: 5px; font-size: 11px; margin-top: 5px; }
+        #sugestoes { background: white; border: 1px solid #ccc; max-height: 180px; overflow-y: auto; display: none; position: absolute; width: 410px; z-index: 2000; border-radius: 0 0 8px 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .fav-list { max-height: 120px; overflow-y: auto; background: #fffde7; border-radius: 6px; padding: 8px; font-size: 11px; margin-top: 8px; border: 1px solid #ffe082; }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
-    <div style="text-align:center; padding-bottom:10px;">
-        <img src="https://www.gstatic.com/images/branding/product/2x/maps_96dp.png" width="25">
-        <h3 style="margin:0; display:inline; vertical-align:middle;"> Logística Intelligence Pro</h3>
+    <div style="text-align:center; padding-bottom:15px; border-bottom: 2px solid #f0f2f5; margin-bottom: 15px;">
+        <img src="https://www.gstatic.com/images/branding/product/2x/maps_96dp.png" width="30" style="vertical-align: middle;">
+        <h2 style="margin:0; display:inline; vertical-align:middle; color: var(--primary); font-size: 1.2rem;"> MASTER LOGÍSTICA GO</h2>
     </div>
 
     <div class="section">
-        <span class="title">⭐ Importação e Favoritos</span>
-        <button class="btn bg-import" onclick="document.getElementById('fileInput').click()">📂 Importar JSON Google Takeout</button>
+        <span class="title">⭐ Meus Favoritos (Google)</span>
+        <button class="btn bg-import" onclick="document.getElementById('fileInput').click()">📂 IMPORTAR JSON (Saved Places)</button>
         <input type="file" id="fileInput" style="display:none;" accept=".json">
         <div id="meusFavoritos" class="fav-list" style="display:none;"></div>
     </div>
 
     <div class="section">
-        <span class="title">📍 Informar Localização</span>
-        <label style="font-size:10px;">PESQUISA INTELIGENTE</label>
-        <input type="text" id="busca" class="input-std" placeholder="Cidade, Posto ou Cliente..." oninput="pesquisar()">
+        <span class="title">📍 Adicionar Paradas</span>
+        <label style="font-size:10px; font-weight: bold;">BUSCA POR NOME / ENDEREÇO</label>
+        <input type="text" id="busca" class="input-std" placeholder="Cidade, Posto, Cliente..." oninput="pesquisar()">
         <div id="sugestoes"></div>
         
-        <div class="grid">
+        <div class="grid" style="margin-top:10px;">
             <div>
-                <label style="font-size:10px;">COORDENADAS</label>
-                <input type="text" id="inputCoord" class="input-std" placeholder="lat, lon">
+                <label style="font-size:10px; font-weight: bold;">COORDENADAS</label>
+                <input type="text" id="inputCoord" class="input-std" placeholder="-16.68, -49.25">
             </div>
             <div>
-                <label style="font-size:10px;">PLUS CODE</label>
-                <input type="text" id="inputPlus" class="input-std" placeholder="Ex: 5VG5+XP">
+                <label style="font-size:10px; font-weight: bold;">PLUS CODE</label>
+                <input type="text" id="inputPlus" class="input-std" placeholder="5VG5+XP">
             </div>
         </div>
         <div class="grid">
-            <button class="btn bg-blue" onclick="addCoord()">Add Coords</button>
-            <button class="btn bg-blue" onclick="addPlus()">Add Plus</button>
+            <button class="btn bg-blue" onclick="addCoord()">+ Coordenada</button>
+            <button class="btn bg-blue" onclick="addPlus()">+ Plus Code</button>
         </div>
     </div>
 
     <div class="section">
-        <span class="title">⚙️ Custos da Viagem (Combustível)</span>
+        <span class="title">⚙️ Custos e Tabela de Frete</span>
         <div class="grid">
-            <div class="field"><label style="font-size:10px;">DIESEL R$/L</label><input type="number" id="diesel" class="input-std" value="5.95"></div>
-            <div class="field"><label style="font-size:10px;">MÉDIA CARG.</label><input type="number" id="mediaC" class="input-std" value="1.9"></div>
-            <div class="field"><label style="font-size:10px;">MÉDIA VAZIO</label><input type="number" id="mediaV" class="input-std" value="2.8"></div>
-            <div class="field"><label style="font-size:10px;">EIXOS (PEDÁGIO)</label><input type="number" id="eixos" class="input-std" value="9"></div>
+            <div class="field"><label style="font-size:10px;">VALOR DO KM (R$)</label><input type="number" id="valorKm" class="input-std" value="7.50" step="0.10"></div>
+            <div class="field"><label style="font-size:10px;">DIESEL (R$/L)</label><input type="number" id="diesel" class="input-std" value="5.95" step="0.01"></div>
+            <div class="field"><label style="font-size:10px;">MÉDIA CARREGADO</label><input type="number" id="mediaC" class="input-std" value="1.9" step="0.1"></div>
+            <div class="field"><label style="font-size:10px;">MÉDIA VAZIO</label><input type="number" id="mediaV" class="input-std" value="2.8" step="0.1"></div>
+            <div class="field"><label style="font-size:10px;">Nº EIXOS</label><input type="number" id="eixos" class="input-std" value="9"></div>
             <div class="field"><label style="font-size:10px;">COMISSÃO %</label><input type="number" id="comissao" class="input-std" value="12"></div>
-            <div class="field"><label style="font-size:10px;">FRETE TOTAL R$</label><input type="number" id="freteProposto" class="input-std" placeholder="Bruto"></div>
         </div>
-        <button class="btn bg-calc" onclick="calcularTudo()">🚚 CALCULAR ROTA E RENTABILIDADE</button>
+        <button class="btn bg-calc" onclick="calcularTudo()">🚀 CALCULAR ROTA E RENTABILIDADE</button>
         <button class="btn bg-clear" onclick="limparTudo()">🗑️ LIMPAR TUDO</button>
     </div>
 
@@ -93,11 +101,13 @@
 
     <div id="resultadoDRE" class="dre-box" style="display:none;">
         <div class="dre-row"><span>KM Total (Ida/Volta):</span><span id="resKm">0</span></div>
-        <div class="dre-row"><span>Diesel + Arla (Misto):</span><span id="resDiesel" style="color:#ff8a80;">R$ 0</span></div>
-        <div class="dre-row"><span>Pedágio Est. (Eixos):</span><span id="resPedagio" style="color:#ff8a80;">R$ 0</span></div>
-        <div class="dre-row"><span>Comissão Motorista:</span><span id="resComissao" style="color:#ff8a80;">R$ 0</span></div>
-        <div class="dre-row" style="border:none; margin-top:10px;"><span>LUCRO LÍQUIDO:</span><span id="resLucro" class="lucro-val">R$ 0</span></div>
-        <button class="btn" style="background:#25d366; color:white; margin-top:10px;" onclick="enviarZap()">📱 Enviar no WhatsApp</button>
+        <div class="dre-row"><span>FRETE BRUTO:</span><span id="resBruto" style="color:#81c784; font-weight:bold;">R$ 0,00</span></div>
+        <div class="dre-row"><span>Custo Diesel (Misto):</span><span id="resDiesel" style="color:#ff8a80;">- R$ 0,00</span></div>
+        <div class="dre-row"><span>Estimativa Pedágio:</span><span id="resPedagio" style="color:#ff8a80;">- R$ 0,00</span></div>
+        <div class="dre-row" style="border:none; margin-top:10px; padding-top:10px; border-top:1px solid #444;">
+            <span>LUCRO LÍQUIDO:</span><span id="resLucro" class="lucro-val">R$ 0,00</span>
+        </div>
+        <button class="btn" style="background:#25d366; color:white; margin-top:15px; height: 45px;" onclick="enviarZap()">📱 ENVIAR WHATSAPP</button>
     </div>
 </div>
 
@@ -108,7 +118,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <script>
-    // Inicialização - Foco em Goiás (Goiânia)
+    // Configuração Inicial - Goiás
     var map = L.map('map').setView([-16.68, -49.25], 7);
     var streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
     var satelliteMap = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}');
@@ -120,10 +130,8 @@
     var marcadores = [];
     var routingControl = null;
 
-    // --- FUNÇÃO VOLTOU: CLICAR NO MAPA PARA ADICIONAR ---
-    map.on('click', function(e) {
-        adicionar(e.latlng.lat, e.latlng.lng, "Ponto Marcado no Mapa");
-    });
+    // --- FUNÇÃO: CLIQUE NO MAPA ---
+    map.on('click', e => adicionar(e.latlng.lat, e.latlng.lng, "Ponto Marcado no Mapa"));
 
     function pesquisar() {
         let q = document.getElementById('busca').value;
@@ -131,7 +139,7 @@
         fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&countrycodes=br&limit=5`)
             .then(r => r.json()).then(data => {
                 let h = '';
-                data.forEach(i => h += `<div style="padding:8px; cursor:pointer; border-bottom:1px solid #eee; font-size:12px;" onclick="adicionar(${i.lat},${i.lon},'${i.display_name}')">${i.display_name}</div>`);
+                data.forEach(i => h += `<div style="padding:12px; cursor:pointer; border-bottom:1px solid #eee; font-size:13px;" onclick="adicionar(${i.lat},${i.lon},'${i.display_name}')">${i.display_name}</div>`);
                 document.getElementById('sugestoes').innerHTML = h;
                 document.getElementById('sugestoes').style.display = 'block';
             });
@@ -146,9 +154,7 @@
     function addPlus() {
         let code = document.getElementById('inputPlus').value;
         fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(code)}`)
-            .then(r => r.json()).then(data => {
-                if(data[0]) adicionar(data[0].lat, data[0].lon, "Plus Code: "+code);
-            });
+            .then(r => r.json()).then(data => { if(data[0]) adicionar(data[0].lat, data[0].lon, "Plus Code: "+code); });
     }
 
     function adicionar(lat, lon, nome) {
@@ -163,14 +169,13 @@
         let html = '';
         marcadores.forEach(m => map.removeLayer(m));
         marcadores = [];
-
         pontos.forEach((p, i) => {
             let classe = i === 0 ? "ponto-card origem" : "ponto-card";
             html += `<div class="${classe}" data-id="${p.id}">
-                <span>${i==0?'🏁':'📍'} ${p.nome.substring(0,25)}...</span>
-                <div style="display:flex; gap:5px;">
-                    <button onclick="window.open('https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${p.latlng.lat},${p.latlng.lng}')" style="border:none; background:#fbbc04; border-radius:3px; cursor:pointer;">👀</button>
-                    <button onclick="remover('${p.id}')" style="border:none; background:none; color:red; cursor:pointer; font-weight:bold;">✕</button>
+                <span><b>${i==0?'🏁':'📍'}</b> ${p.nome.substring(0,30)}...</span>
+                <div style="display:flex; gap:8px;">
+                    <button title="Street View" onclick="window.open('https://www.google.com/maps?q&layer=c&cbll=${p.latlng.lat},${p.latlng.lng}')" style="border:none; background:#fbbc04; border-radius:4px; cursor:pointer; padding:4px 8px;">👀</button>
+                    <button onclick="remover('${p.id}')" style="border:none; background:none; color:red; cursor:pointer; font-weight:bold; font-size:16px;">✕</button>
                 </div>
             </div>`;
             marcadores.push(L.marker(p.latlng).addTo(map));
@@ -181,66 +186,66 @@
 
     function reordenar() {
         let nova = [];
-        document.querySelectorAll('.ponto-card').forEach(el => {
-            nova.push(pontos.find(p => p.id === el.dataset.id));
-        });
+        document.querySelectorAll('.ponto-card').forEach(el => { nova.push(pontos.find(p => p.id === el.dataset.id)); });
         pontos = nova;
     }
 
     function calcularTudo() {
-        if(pontos.length < 2) return alert("Adicione no mínimo Origem e Destino");
-        
-        let rotaIdaVolta = [...pontos, pontos[0]]; // Estratégia Ida e Volta
+        if(pontos.length < 2) return alert("Adicione origem e destino.");
+        let rotaCalculo = [...pontos, pontos[0]]; // Ida e Volta sempre
 
         if(routingControl) map.removeControl(routingControl);
 
         routingControl = L.Routing.control({
-            waypoints: rotaIdaVolta.map(p => p.latlng),
+            waypoints: rotaCalculo.map(p => p.latlng),
             router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: 'car' }),
             show: false, addWaypoints: false,
             lineOptions: { styles: [{ color: '#1a73e8', weight: 6 }] }
         }).on('routesfound', function(e) {
-            let kmTotal = (e.routes[0].summary.totalDistance / 1000) * 1.05; // 5% margem manobra
+            let kmTotal = (e.routes[0].summary.totalDistance / 1000) * 1.05;
             let kmIda = kmTotal / 2;
 
-            // Diesel Misto (Ida Carregado / Volta Vazio)
+            // --- LÓGICA DE FRETE RECUPERADA ---
+            let valorKmManual = parseFloat(document.getElementById('valorKm').value);
+            let freteBruto = kmIda * valorKmManual;
+
             let litrosIda = kmIda / parseFloat(document.getElementById('mediaC').value);
             let litrosVolta = kmIda / parseFloat(document.getElementById('mediaV').value);
             let custoDiesel = (litrosIda + litrosVolta) * parseFloat(document.getElementById('diesel').value);
             
-            // Pedágio Est. (10 centavos por km por par de eixos aprox)
-            let pedagio = (kmTotal * 0.10) * (parseInt(document.getElementById('eixos').value) / 2);
-            
-            let freteBruto = parseFloat(document.getElementById('freteProposto').value) || 0;
+            let pedagio = (kmTotal * 0.09) * (parseInt(document.getElementById('eixos').value) / 2);
             let comissao = freteBruto * (parseFloat(document.getElementById('comissao').value) / 100);
             let lucro = freteBruto - custoDiesel - pedagio - comissao;
 
+            // Atualização da UI
             document.getElementById('resKm').innerText = kmTotal.toFixed(1) + " km";
+            document.getElementById('resBruto').innerText = "R$ " + freteBruto.toLocaleString('pt-BR', {minimumFractionDigits: 2});
             document.getElementById('resDiesel').innerText = "R$ " + custoDiesel.toFixed(2);
             document.getElementById('resPedagio').innerText = "R$ " + pedagio.toFixed(2);
-            document.getElementById('resComissao').innerText = "R$ " + comissao.toFixed(2);
-            document.getElementById('resLucro').innerText = "R$ " + lucro.toFixed(2);
+            document.getElementById('resLucro').innerText = "R$ " + lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2});
             
             document.getElementById('resultadoDRE').style.display = 'block';
             map.fitBounds(L.latLngBounds(pontos.map(p => p.latlng)));
         }).addTo(map);
     }
 
-    // Importação JSON Google
+    // Importar JSON do Google
     document.getElementById('fileInput').addEventListener('change', function(e) {
         const reader = new FileReader();
         reader.onload = function() {
-            const data = JSON.parse(reader.result);
-            const favs = data.features || data;
-            let h = '';
-            favs.forEach(f => {
-                let n = f.properties?.name || f.name;
-                let la = f.geometry?.coordinates[1] || f.latitude;
-                let lo = f.geometry?.coordinates[0] || f.longitude;
-                if(la) h += `<div class="fav-item" style="cursor:pointer; padding:3px;" onclick="adicionar(${la},${lo},'${n}')">⭐ ${n}</div>`;
-            });
-            document.getElementById('meusFavoritos').innerHTML = h;
-            document.getElementById('meusFavoritos').style.display = 'block';
+            try {
+                const data = JSON.parse(reader.result);
+                const favs = data.features || data;
+                let h = '';
+                favs.forEach(f => {
+                    let n = f.properties?.name || f.name;
+                    let la = f.geometry?.coordinates[1] || f.latitude;
+                    let lo = f.geometry?.coordinates[0] || f.longitude;
+                    if(la) h += `<div class="fav-item" onclick="adicionar(${la},${lo},'${n}')">⭐ ${n}</div>`;
+                });
+                document.getElementById('meusFavoritos').innerHTML = h;
+                document.getElementById('meusFavoritos').style.display = 'block';
+            } catch(e) { alert("Erro ao ler JSON."); }
         };
         reader.readAsText(e.target.files[0]);
     });
@@ -251,9 +256,14 @@
     function enviarZap() {
         let msg = `*RELATÓRIO DE FRETE LOGÍSTICA*%0A` +
                   `🛣️ Distância: ${document.getElementById('resKm').innerText}%0A` +
-                  `💰 *LUCRO LÍQUIDO: ${document.getElementById('resLucro').innerText}*%0A` +
-                  `⛽ Diesel Est: ${document.getElementById('resDiesel').innerText}`;
+                  `💰 *VALOR FRETE: ${document.getElementById('resBruto').innerText}*%0A` +
+                  `⛽ Diesel Est: R$ ${document.getElementById('resDiesel').innerText}%0A` +
+                  `✅ *LUCRO LÍQUIDO: ${document.getElementById('resLucro').innerText}*`;
         window.open(`https://api.whatsapp.com/send?text=${msg}`);
+    }
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
     }
 </script>
 </body>
