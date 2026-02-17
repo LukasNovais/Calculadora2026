@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Logística Intelligence Pro - TOTAL</title>
+    <title>Logística Intelligence Pro - MASTER</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
@@ -18,9 +18,9 @@
         .section { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
         .title { font-size: 0.75rem; font-weight: 800; color: #555; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
 
-        /* Pesquisa Inteligente */
         .search-container { position: relative; margin-bottom: 10px; }
         .input-std { width: 100%; height: 38px; border: 1px solid #bdbdbd; border-radius: 6px; padding: 0 10px; box-sizing: border-box; font-size: 13px; font-weight: 600; }
+        
         #sugestoes { 
             position: absolute; top: 40px; left: 0; width: 100%; 
             background: white; border: 1px solid #ccc; border-radius: 6px;
@@ -43,7 +43,7 @@
         .ponto-card { background: #f8f9fa; border: 1px solid #ddd; padding: 10px; border-radius: 8px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-left: 6px solid var(--google-blue); }
 
         .dre-box { background: #1a1a1a; color: #fff; border-radius: 12px; padding: 15px; margin-top: 15px; }
-        .dre-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #333; font-size: 13px; }
+        .dre-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #333; font-size: 13px; }
         .lucro-val { font-size: 20px; color: #00e676; font-weight: bold; }
     </style>
 </head>
@@ -51,13 +51,13 @@
 
 <div class="sidebar">
     <div style="text-align:center; padding-bottom:10px;">
-        <h2 style="margin:0; color: var(--primary); font-size: 1.1rem;">MASTER LOGÍSTICA INTEL</h2>
+        <h2 style="margin:0; color: var(--primary); font-size: 1.1rem;">MASTER LOGÍSTICA PRO</h2>
     </div>
 
     <div class="section">
-        <span class="title">📍 Destinos (Busca ou Clique no Mapa)</span>
+        <span class="title">📍 Paradas (Digite e aperte ENTER)</span>
         <div class="search-container">
-            <input type="text" id="busca" class="input-std" placeholder="Digite e aperte ENTER..." onkeypress="handleEnter(event)">
+            <input type="text" id="busca" class="input-std" placeholder="Cidade ou Cliente + ENTER" onkeypress="handleEnter(event)">
             <div id="sugestoes"></div>
         </div>
         <div class="grid">
@@ -71,7 +71,7 @@
     </div>
 
     <div class="section">
-        <span class="title">⚙️ Negociação e Custos</span>
+        <span class="title">⚙️ Custos e Tabela</span>
         <div class="route-type">
             <div id="optIda" class="route-option active" onclick="setTipoRota('ida')">SÓ IDA</div>
             <div id="optIdaVolta" class="route-option" onclick="setTipoRota('idavolta')">IDA E VOLTA</div>
@@ -85,7 +85,7 @@
             <div class="field"><label style="font-size:9px; font-weight:bold;">EIXOS</label><input type="number" id="eixos" class="input-std" value="9"></div>
             <div class="field"><label style="font-size:9px; font-weight:bold;">COMISSÃO %</label><input type="number" id="comissao" class="input-std" value="12"></div>
         </div>
-        <button class="btn bg-calc" onclick="calcularTudo()">🚀 CALCULAR ROTA E DRE</button>
+        <button class="btn bg-calc" onclick="calcularTudo()">🚀 CALCULAR TUDO</button>
         <button class="btn" style="background:white; color:red; border:1px solid red; margin-top:5px;" onclick="limparTudo()">🗑️ LIMPAR TUDO</button>
     </div>
 
@@ -93,14 +93,16 @@
 
     <div id="resultadoDRE" class="dre-box" style="display:none;">
         <div class="dre-row"><span>KM Ida:</span><span id="resKmIda">0</span></div>
-        <div class="dre-row"><span>KM Total (Giro):</span><span id="resKmTotal">0</span></div>
-        <div class="dre-row"><span>Ref. Mínima ANTT:</span><span id="resAntt" style="color:var(--warning)">R$ 0,00</span></div>
+        <div class="dre-row"><span>Giro Total (Ida/Volta):</span><span id="resKmTotal">0</span></div>
+        <div class="dre-row"><span>Referência ANTT:</span><span id="resAntt" style="color:var(--warning)">R$ 0,00</span></div>
         <div class="dre-row"><span>FRETE BRUTO:</span><span id="resBruto" style="color:#81c784; font-weight:bold;">R$ 0,00</span></div>
-        <div class="dre-row"><span>Custo Diesel/Arla:</span><span id="resDiesel" style="color:#ff8a80;">- R$ 0,00</span></div>
+        <div class="dre-row"><span>Diesel + Arla:</span><span id="resDiesel" style="color:#ff8a80;">- R$ 0,00</span></div>
+        <div class="dre-row"><span>Pedágio (Estimado):</span><span id="resPedagio" style="color:#ff8a80;">- R$ 0,00</span></div>
+        <div class="dre-row"><span>Comissão:</span><span id="resComissao" style="color:#ff8a80;">- R$ 0,00</span></div>
         <div class="dre-row" style="border:none; margin-top:10px; padding-top:10px; border-top:1px solid #444;">
             <span>LUCRO LÍQUIDO:</span><span id="resLucro" class="lucro-val">R$ 0,00</span>
         </div>
-        <button class="btn" style="background:#25d366; color:white; margin-top:10px;" onclick="enviarZap()">📱 ENVIAR WHATSAPP</button>
+        <button class="btn" style="background:#25d366; color:white; margin-top:10px;" onclick="enviarZap()">📱 WHATSAPP</button>
     </div>
 </div>
 
@@ -118,7 +120,6 @@
     var routingControl = null;
     var tipoRota = 'ida';
 
-    // FUNÇÃO: Clique no mapa para adicionar ponto
     map.on('click', e => adicionar(e.latlng.lat, e.latlng.lng, "Ponto no Mapa"));
 
     function setTipoRota(t) {
@@ -127,7 +128,6 @@
         document.getElementById('optIdaVolta').classList.toggle('active', t === 'idavolta');
     }
 
-    // FUNÇÃO: Pesquisa com ENTER
     function handleEnter(e) {
         if(e.key === 'Enter') {
             let q = document.getElementById('busca').value;
@@ -165,8 +165,8 @@
     }
 
     function calcularTudo() {
-        if(pontos.length < 2) return alert("Adicione no mínimo Origem e Destino.");
-        let rotaFisica = [...pontos, pontos[0]]; // Sempre ida e volta para custo real
+        if(pontos.length < 2) return alert("Origem e Destino obrigatórios.");
+        let rotaFisica = [...pontos, pontos[0]]; 
 
         if(routingControl) map.removeControl(routingControl);
 
@@ -178,20 +178,25 @@
             let kmTotal = (e.routes[0].summary.totalDistance / 1000) * 1.05;
             let kmIda = kmTotal / 2;
 
-            // 1. Frete Bruto (Manual via Campo Valor KM)
+            // 1. Frete Manual
             let vKm = parseFloat(document.getElementById('valorKm').value);
             let freteBruto = (tipoRota === 'ida') ? (kmIda * vKm) : (kmTotal * vKm);
 
-            // 2. Referência ANTT (Lógica base recuperada)
-            let refAntt = (kmIda * 5.80) + 450; // Estimativa média ANTT para carga lotação
+            // 2. Lógica ANTT (Carga Lotação 9 eixos ref)
+            let refAntt = (kmIda * 6.10) + 520; 
 
             // 3. Custos (Diesel Misto)
             let lIda = kmIda / parseFloat(document.getElementById('mediaC').value);
             let lVolta = kmIda / parseFloat(document.getElementById('mediaV').value);
             let custoD = (lIda + lVolta) * parseFloat(document.getElementById('diesel').value);
             
-            let ped = (kmTotal * 0.10) * (parseInt(document.getElementById('eixos').value) / 2);
+            // 4. Pedágio (R$ 0.12 p/ km p/ eixo médio)
+            let ped = (kmTotal * 0.12) * (parseInt(document.getElementById('eixos').value) / 2);
+            
+            // 5. Comissão
             let com = freteBruto * (parseFloat(document.getElementById('comissao').value) / 100);
+            
+            // 6. Lucro
             let lucro = freteBruto - custoD - ped - com;
 
             document.getElementById('resKmIda').innerText = kmIda.toFixed(1) + " km";
@@ -199,6 +204,8 @@
             document.getElementById('resAntt').innerText = "R$ " + refAntt.toLocaleString('pt-BR');
             document.getElementById('resBruto').innerText = "R$ " + freteBruto.toLocaleString('pt-BR', {minimumFractionDigits: 2});
             document.getElementById('resDiesel').innerText = "R$ " + custoD.toFixed(2);
+            document.getElementById('resPedagio').innerText = "R$ " + ped.toFixed(2);
+            document.getElementById('resComissao').innerText = "R$ " + com.toFixed(2);
             document.getElementById('resLucro').innerText = "R$ " + lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2});
             
             document.getElementById('resultadoDRE').style.display = 'block';
@@ -222,7 +229,7 @@
     }
 
     function enviarZap() {
-        let msg = `*RELATÓRIO DE FRETE*%0A🛣️ KM Ida: ${document.getElementById('resKmIda').innerText}%0A💰 *VALOR: ${document.getElementById('resBruto').innerText}*%0A✅ LUCRO: ${document.getElementById('resLucro').innerText}`;
+        let msg = `*RELATÓRIO DE FRETE MASTER*%0A🛣️ Ida: ${document.getElementById('resKmIda').innerText}%0A💰 *VALOR: ${document.getElementById('resBruto').innerText}*%0A⛽ Diesel: ${document.getElementById('resDiesel').innerText}%0A🛣️ Pedágio: ${document.getElementById('resPedagio').innerText}%0A✅ *LUCRO: ${document.getElementById('resLucro').innerText}*`;
         window.open(`https://api.whatsapp.com/send?text=${msg}`);
     }
 </script>
