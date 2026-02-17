@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frete Master - Rota Circular</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    
+    <style>
+        :root { --primary: #1b5e20; --accent: #0d47a1; --danger: #b71c1c; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        .sidebar { width: 100%; max-width: 400px; background: white; padding: 15px; box-shadow: 2px 0 15px rgba(0,0,0,0.1); z-index: 10; overflow-y: auto; box-sizing: border-box; }
+        #map { flex-grow: 1; z-index: 1; }
+
+        .header { text-align: center; margin-bottom: 10px; border-bottom: 2px solid #eee; }
+        .config-box { background: #e8f5e9; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+        input[type="number"] { width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; }
+        
+        /* Checkbox de Retorno */
+        .toggle-container { display: flex; align-items: center; justify-content: center; background: #fff3e0; padding: 10px; border-radius: 8px; border: 1px solid #ffe0b2; margin: 10px 0; font-weight: bold; cursor: pointer; }
+        .toggle-container input { margin-right: 10px; transform: scale(1.3); }
+
+        .btn-gps { background: var(--primary); color: white; border: none; width: 100%; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        
+        .ponto-card { 
+            background: #fff; border: 1px solid #ddd; padding: 12px; border-radius: 8px; 
+            margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; 
+            cursor: grab;
+        }
+        .ponto-card:first-child { border-left: 5px solid var(--accent); } /* Destaque para a Origem */
+
+        .resumo { background: #fff; border: 2px solid var(--primary); border-radius: 12px; padding: 15px; text-align: center; margin-top: 15px; display: none; }
+        .valor { font-size: 2.2rem; font-weight: bold; color: var(--primary); }
+
+        @media (min-width: 768px) { body { flex-direction: row; } .sidebar { height: 100vh; } }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="header">
+        <h3 style="margin:0; color:var(--primary);">🚚 Logística Express</h3>
+    </div>
+
+    <div class="config-box">
+        <label style="font-size: 0.8rem;">Preço por KM (R$):</label>
+        <input type="number" id="valorKm" value="3.50">
+    </div>
+
+    <label class="toggle-container">
+        <input type="checkbox" id="retornoOrigem" checked> 🔄 CALCULAR IDA E VOLTA
+    </label>
+
+    <input type="text" id="busca" placeholder="🔍 Buscar endereço..." oninput="buscarEndereco()">
+    <div id="sugestoes" style="background:white; border:1px solid #eee; display:none; max-height:150px; overflow-y:auto; margin-bottom:10px; font-size: 0.8rem;"></div>
+
+    <button class="btn-gps" onclick="colarCoordenada()">📍 COLAR LOCALIZAÇÃO (GOOGLE)</button>
+
+    <div id="lista"></div>
+
+    <button onclick="otimizarECalcular()" style="background: var(--accent); color: white; border: none; width: 100%; padding: 18px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 1rem;">
+        ✨ CALCULAR ROTA COMPLETA
+    </button>
+
+    <div id="resultado" class="resumo">
+        <div id="tipoRota" style="font-weight:bold; color: var(--accent); margin-bottom: 5px;"></div>
+        <small>Distância Total:</small>
+        <div style="font-weight:bold;"><span id="dist">0</span> km</div>
+        <div class="valor">R$ <span id="preco">0,00</span></div>
+        <button onclick="enviarZap()" style="background:#25d366; color:white; border:none; width:100%; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:10px;">Enviar Orçamento WhatsApp</button>
+    </div>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<script>
+    var map = L.map('map').setView([-15.78, -47.92], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    
+    var pontos = [];
+    var routingControl = null;
+
+    // Arrastar e Soltar
+    Sortable.create(document.getElementById('lista'), {
+        animation: 150,
+        onEnd: function() { reordenarManual(); }
+    });
+
+    async function buscarEndereco() {
+        let q = document.getElementById('busca').value;
+        if (q.length < 4) return;
+        let res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}&countrycodes=br&limit=5`);
+        let data = await res.json();
+        let html = '';
+        data.forEach(item => {
+            html += `<div style="padding:10px; border-bottom:1px solid #eee; cursor:pointer" onclick="adicionar('${item.lat}','${item.lon}','${item.display_name}')">${item.display_name}</div>`;
+        });
+        document.getElementById('sugestoes').innerHTML = html;
+        document.getElementById('sugestoes').style.display = 'block';
+    }
+
+    async function colarCoordenada() {
+        try {
+            const texto = await navigator.clipboard.readText();
+            const coords = texto.match(/-?\d+\.\d+/g);
+            if (coords && coords.length >= 2) adicionar(coords[0], coords[1], "Localização Coordenada");
+        } catch (e) { alert("Permita acesso à área de transferência."); }
+    }
+
+    function adicionar(lat, lon, nome) {
+        let latlng = L.latLng(parseFloat(lat), parseFloat(lon));
+        pontos.push({ id: Date.now().toString(), latlng: latlng, nome: nome });
+        document.getElementById('busca').value = '';
+        document.getElementById('sugestoes').style.display = 'none';
+        renderizar();
+    }
+
+    function remover(id) {
+        pontos = pontos.filter(p => p.id !== id);
+        renderizar();
+    }
+
+    function reordenarManual() {
+        let novaOrdem = [];
+        document.querySelectorAll('.ponto-card').forEach(item => {
+            novaOrdem.push(pontos.find(p => p.id === item.dataset.id));
+        });
+        pontos = novaOrdem;
+    }
+
+    function renderizar() {
+        let html = '';
+        pontos.forEach((p, i) => {
+            let label = i === 0 ? "<b>SÉDE/INÍCIO</b>" : `Parada ${i}`;
+            html += `<div class="ponto-card" data-id="${p.id}">
+                <div>${label}<br><small>${p.nome.substring(0,25)}...</small></div>
+                <button onclick="remover('${p.id}')" style="color:red; border:none; background:none; cursor:pointer;">✕</button>
+            </div>`;
+        });
+        document.getElementById('lista').innerHTML = html;
+    }
+
+    function otimizarECalcular() {
+        if (pontos.length < 2) return alert("Adicione no mínimo a Origem e um Destino.");
+
+        let rotaCalculo = [...pontos];
+        
+        // Se a opção "Retorno" estiver marcada, adicionamos a origem novamente no final
+        if (document.getElementById('retornoOrigem').checked) {
+            rotaCalculo.push(pontos[0]);
+            document.getElementById('tipoRota').innerText = "🔄 ROTA IDA E VOLTA";
+        } else {
+            document.getElementById('tipoRota').innerText = "📍 ROTA APENAS IDA";
+        }
+
+        if (routingControl) map.removeControl(routingControl);
+
+        routingControl = L.Routing.control({
+            waypoints: rotaCalculo.map(p => p.latlng),
+            routeWhileDragging: false,
+            addWaypoints: false,
+            show: false,
+            lineOptions: { styles: [{ color: '#0d47a1', weight: 6 }] }
+        }).on('routesfound', function(e) {
+            let distKm = e.routes[0].summary.totalDistance / 1000;
+            let kmComMargem = distKm * 1.10; // 10% de margem extra (ajustável)
+            let vKm = parseFloat(document.getElementById('valorKm').value);
+            let total = kmComMargem * vKm;
+
+            document.getElementById('dist').innerText = kmComMargem.toFixed(2);
+            document.getElementById('preco').innerText = total.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            document.getElementById('resultado').style.display = 'block';
+            map.fitBounds(L.latLngBounds(rotaCalculo.map(p => p.latlng)));
+        }).addTo(map);
+    }
+
+    function enviarZap() {
+        let tipo = document.getElementById('tipoRota').innerText;
+        let msg = `*${tipo}*%0A` +
+                  `📍 Paradas: ${pontos.length}%0A` +
+                  `📏 KM: ${document.getElementById('dist').innerText} km (Total)%0A` +
+                  `💰 *VALOR: R$ ${document.getElementById('preco').innerText}*`;
+        window.open(`https://api.whatsapp.com/send?text=${msg}`);
+    }
+</script>
+</body>
+</html>
