@@ -45,6 +45,7 @@
         .dre-box { background: #1a1a1a; color: #fff; border-radius: 12px; padding: 15px; margin-top: 15px; }
         .dre-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #333; font-size: 13px; }
         .lucro-val { font-size: 20px; color: #00e676; font-weight: bold; }
+        .margem-val { font-size: 16px; color: #81d4fa; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -99,8 +100,11 @@
         <div class="dre-row"><span>Diesel + Arla:</span><span id="resDiesel" style="color:#ff8a80;">- R$ 0,00</span></div>
         <div class="dre-row"><span>Pedágio (Estimado):</span><span id="resPedagio" style="color:#ff8a80;">- R$ 0,00</span></div>
         <div class="dre-row"><span>Comissão:</span><span id="resComissao" style="color:#ff8a80;">- R$ 0,00</span></div>
-        <div class="dre-row" style="border:none; margin-top:10px; padding-top:10px; border-top:1px solid #444;">
+        <div class="dre-row" style="margin-top:10px; padding-top:10px; border-top:1px solid #444;">
             <span>LUCRO LÍQUIDO:</span><span id="resLucro" class="lucro-val">R$ 0,00</span>
+        </div>
+        <div class="dre-row" style="border:none;">
+            <span>MARGEM DE LUCRO:</span><span id="resMargem" class="margem-val">0%</span>
         </div>
         <button class="btn" style="background:#25d366; color:white; margin-top:10px;" onclick="enviarZap()">📱 WHATSAPP</button>
     </div>
@@ -182,22 +186,19 @@
             let vKm = parseFloat(document.getElementById('valorKm').value);
             let freteBruto = (tipoRota === 'ida') ? (kmIda * vKm) : (kmTotal * vKm);
 
-            // 2. Lógica ANTT (Carga Lotação 9 eixos ref)
+            // 2. Lógica ANTT
             let refAntt = (kmIda * 6.10) + 520; 
 
-            // 3. Custos (Diesel Misto)
+            // 3. Custos
             let lIda = kmIda / parseFloat(document.getElementById('mediaC').value);
             let lVolta = kmIda / parseFloat(document.getElementById('mediaV').value);
             let custoD = (lIda + lVolta) * parseFloat(document.getElementById('diesel').value);
-            
-            // 4. Pedágio (R$ 0.12 p/ km p/ eixo médio)
             let ped = (kmTotal * 0.12) * (parseInt(document.getElementById('eixos').value) / 2);
-            
-            // 5. Comissão
             let com = freteBruto * (parseFloat(document.getElementById('comissao').value) / 100);
             
-            // 6. Lucro
+            // 4. Lucro e Margem (NOVO)
             let lucro = freteBruto - custoD - ped - com;
+            let margem = (lucro / freteBruto) * 100;
 
             document.getElementById('resKmIda').innerText = kmIda.toFixed(1) + " km";
             document.getElementById('resKmTotal').innerText = kmTotal.toFixed(1) + " km";
@@ -207,6 +208,7 @@
             document.getElementById('resPedagio').innerText = "R$ " + ped.toFixed(2);
             document.getElementById('resComissao').innerText = "R$ " + com.toFixed(2);
             document.getElementById('resLucro').innerText = "R$ " + lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            document.getElementById('resMargem').innerText = margem.toFixed(2) + "%";
             
             document.getElementById('resultadoDRE').style.display = 'block';
             map.fitBounds(L.latLngBounds(pontos.map(p => p.latlng)));
@@ -229,7 +231,7 @@
     }
 
     function enviarZap() {
-        let msg = `*RELATÓRIO DE FRETE MASTER*%0A🛣️ Ida: ${document.getElementById('resKmIda').innerText}%0A💰 *VALOR: ${document.getElementById('resBruto').innerText}*%0A⛽ Diesel: ${document.getElementById('resDiesel').innerText}%0A🛣️ Pedágio: ${document.getElementById('resPedagio').innerText}%0A✅ *LUCRO: ${document.getElementById('resLucro').innerText}*`;
+        let msg = `*RELATÓRIO DE FRETE MASTER*%0A🛣️ Ida: ${document.getElementById('resKmIda').innerText}%0A💰 *VALOR: ${document.getElementById('resBruto').innerText}*%0A✅ *LUCRO: ${document.getElementById('resLucro').innerText}* (${document.getElementById('resMargem').innerText})`;
         window.open(`https://api.whatsapp.com/send?text=${msg}`);
     }
 </script>
