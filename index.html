@@ -3,75 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Logística Pro Mobile</title>
+    <title>Logística Pro Mestre</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     
     <style>
         :root { --primary: #1a237e; --google-blue: #1a73e8; --success: #2e7d32; --warning: #fbbc04; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; overflow: hidden; }
         
-        /* Layout Responsivo */
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; }
-        
-        .sidebar { 
-            width: 100%; max-width: 450px; background: white; padding: 10px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2); overflow-y: auto; 
-            z-index: 1000; flex-shrink: 0; box-sizing: border-box;
-        }
+        /* Layout Mobile First */
+        .sidebar { width: 100%; max-width: 450px; background: white; padding: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); overflow-y: auto; z-index: 1000; flex-shrink: 0; height: 50vh; }
+        #map { flex-grow: 1; width: 100%; height: 50vh; z-index: 1; }
 
         @media (min-width: 768px) {
             body { flex-direction: row; }
             .sidebar { height: 100vh; width: 400px; }
+            #map { height: 100vh; }
         }
-
-        #map { flex-grow: 1; width: 100%; min-height: 300px; z-index: 1; }
 
         .section { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
-        .title { font-size: 0.7rem; font-weight: 800; color: #555; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; border-bottom: 1px solid #eee; padding-bottom: 3px; }
+        .title { font-size: 0.7rem; font-weight: 800; color: #555; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 3px; }
 
         .search-container { position: relative; margin-bottom: 10px; }
-        .input-std { width: 100%; height: 44px; border: 1px solid #bdbdbd; border-radius: 6px; padding: 0 10px; box-sizing: border-box; font-size: 14px; font-weight: 600; appearance: none; }
+        .input-std { width: 100%; height: 40px; border: 1px solid #bdbdbd; border-radius: 6px; padding: 0 10px; box-sizing: border-box; font-size: 14px; font-weight: 600; }
         
-        #sugestoes { 
-            position: absolute; top: 46px; left: 0; width: 100%; 
-            background: white; border: 1px solid #ccc; border-radius: 6px;
-            max-height: 200px; overflow-y: auto; display: none; z-index: 3001;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-        }
-        .sugestao-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 13px; color: #333; }
+        #sugestoes { position: absolute; top: 42px; left: 0; width: 100%; background: white; border: 1px solid #ccc; border-radius: 6px; max-height: 180px; overflow-y: auto; display: none; z-index: 3001; box-shadow: 0 8px 16px rgba(0,0,0,0.2); }
+        .sugestao-item { padding: 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 13px; }
 
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .route-type { display: flex; background: #f0f0f0; border-radius: 6px; padding: 4px; margin: 8px 0; }
         .route-option { flex: 1; text-align: center; padding: 10px; font-size: 11px; font-weight: bold; cursor: pointer; border-radius: 4px; }
         .route-option.active { background: var(--primary); color: white; }
 
-        .btn { width: 100%; height: 44px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 5px; }
+        .btn { width: 100%; height: 40px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 5px; }
         .bg-blue { background: var(--google-blue); color: white; }
-        .bg-calc { background: var(--success); color: white; font-size: 14px; height: 50px; }
+        .bg-calc { background: var(--success); color: white; font-size: 14px; height: 48px; }
         
         .ponto-card { background: #f8f9fa; border: 1px solid #ddd; padding: 8px; border-radius: 8px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-left: 5px solid var(--google-blue); }
 
         .dre-box { background: #1a1a1a; color: #fff; border-radius: 12px; padding: 15px; margin-top: 10px; }
-        .dre-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #333; font-size: 13px; }
+        .dre-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #333; font-size: 13px; }
         .lucro-val { font-size: 20px; color: #00e676; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
-    <div style="text-align:center; padding-bottom:5px;">
-        <h2 style="margin:0; color: var(--primary); font-size: 1rem;">MASTER LOGÍSTICA PRO</h2>
-    </div>
+    <div style="text-align:center; padding-bottom:5px;"><h2 style="margin:0; color: var(--primary); font-size: 1rem;">MASTER LOGÍSTICA PRO</h2></div>
 
     <div class="section">
-        <span class="title">📍 Destinos (Busca ou Plus Code)</span>
+        <span class="title">📍 Localização (Busca ou Coords)</span>
         <div class="search-container">
-            <input type="search" id="busca" class="input-std" placeholder="Cidade ou Cliente + ENTER" onkeypress="handleEnter(event)">
+            <input type="text" id="busca" class="input-std" placeholder="Cidade + ENTER" onkeypress="handleEnter(event)">
             <div id="sugestoes"></div>
         </div>
         <div class="grid">
-            <input type="text" id="inputCoord" class="input-std" placeholder="Lat, Lon">
+            <input type="text" id="inputCoord" class="input-std" placeholder="Lat, Lon do Maps">
             <input type="text" id="inputPlus" class="input-std" placeholder="Plus Code">
         </div>
         <div class="grid" style="margin-top:5px;">
@@ -81,12 +69,11 @@
     </div>
 
     <div class="section">
-        <span class="title">⚙️ Custos e Tabela</span>
+        <span class="title">⚙️ Custos e Negociação</span>
         <div class="route-type">
             <div id="optIda" class="route-option active" onclick="setTipoRota('ida')">SÓ IDA</div>
             <div id="optIdaVolta" class="route-option" onclick="setTipoRota('idavolta')">IDA E VOLTA</div>
         </div>
-
         <div class="grid">
             <div><label style="font-size:9px; font-weight:bold;">VALOR KM</label><input type="number" id="valorKm" class="input-std" value="7.50"></div>
             <div><label style="font-size:9px; font-weight:bold;">DIESEL</label><input type="number" id="diesel" class="input-std" value="5.95"></div>
@@ -95,33 +82,34 @@
             <div><label style="font-size:9px; font-weight:bold;">EIXOS</label><input type="number" id="eixos" class="input-std" value="9"></div>
             <div><label style="font-size:9px; font-weight:bold;">COMIS. %</label><input type="number" id="comissao" class="input-std" value="12"></div>
         </div>
-        <button class="btn bg-calc" onclick="calcularTudo()">🚀 CALCULAR ROTA E DRE</button>
+        <button class="btn bg-calc" onclick="calcularTudo()">🚀 CALCULAR FRETE</button>
+        <button class="btn" style="background:white; color:red; border:1px solid red; margin-top:5px;" onclick="limparTudo()">🗑️ LIMPAR</button>
     </div>
 
     <div id="listaAtiva"></div>
 
     <div id="resultadoDRE" class="dre-box" style="display:none;">
-        <div class="dre-row"><span>KM Ida:</span><span id="resKmIda">0</span></div>
+        <div class="dre-row"><span>Distância Ida:</span><span id="resKmIda">0</span></div>
         <div class="dre-row"><span>Giro Total:</span><span id="resKmTotal">0</span></div>
-        <div class="dre-row"><span>Ref. ANTT:</span><span id="resAntt" style="color:var(--warning)">R$ 0,00</span></div>
+        <div class="dre-row"><span>Ref. Mínima ANTT:</span><span id="resAntt" style="color:var(--warning)">R$ 0,00</span></div>
         <div class="dre-row"><span>FRETE BRUTO:</span><span id="resBruto" style="color:#81c784; font-weight:bold;">R$ 0,00</span></div>
         <div class="dre-row"><span>Diesel:</span><span id="resDiesel" style="color:#ff8a80;">- R$ 0,00</span></div>
-        <div class="dre-row"><span>Pedágio:</span><span id="resPedagio" style="color:#ff8a80;">- R$ 0,00</span></div>
-        <div class="dre-row" style="margin-top:8px; padding-top:8px; border-top:1px solid #444;">
+        <div class="dre-row"><span>Pedágio Est.:</span><span id="resPedagio" style="color:#ff8a80;">- R$ 0,00</span></div>
+        <div class="dre-row"><span>Comissão:</span><span id="resComissao" style="color:#ff8a80;">- R$ 0,00</span></div>
+        <div class="dre-row" style="margin-top:10px; padding-top:10px; border-top:1px solid #444;">
             <span>LUCRO LÍQUIDO:</span><span id="resLucro" class="lucro-val">R$ 0,00</span>
         </div>
         <div class="dre-row"><span>MARGEM:</span><span id="resMargem" style="color:#81d4fa; font-weight:bold;">0%</span></div>
-        <button class="btn" style="background:#25d366; color:white; margin-top:10px;" onclick="enviarZap()">📱 WHATSAPP</button>
+        <button class="btn" style="background:#25d366; color:white; margin-top:10px;" onclick="enviarZap()">📱 ENVIAR WHATSAPP</button>
     </div>
 </div>
-
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
 
 <script>
-    var map = L.map('map').setView([-16.68, -49.25], 7);
+    var map = L.map('map').setView([-16.68, -49.25], 5);
     L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}').addTo(map);
 
     var pontos = [];
@@ -137,27 +125,26 @@
         document.getElementById('optIdaVolta').classList.toggle('active', t === 'idavolta');
     }
 
-    // Melhorei o ENTER para Mobile
     function handleEnter(e) {
-        if(e.key === 'Enter' || e.keyCode === 13) {
-            e.preventDefault();
+        if(e.key === 'Enter') {
             let q = document.getElementById('busca').value;
-            if(q.length < 3) return;
-            
             fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=br&limit=5`)
                 .then(r => r.json()).then(data => {
                     let h = '';
                     data.forEach(i => h += `<div class="sugestao-item" onclick="adicionar(${i.lat},${i.lon},'${i.display_name.split(',')[0]}')">${i.display_name}</div>`);
-                    let sug = document.getElementById('sugestoes');
-                    sug.innerHTML = h;
-                    sug.style.display = h ? 'block' : 'none';
-                    document.activeElement.blur(); // Esconde o teclado
+                    document.getElementById('sugestoes').innerHTML = h;
+                    document.getElementById('sugestoes').style.display = 'block';
                 });
         }
     }
 
     function adicionar(lat, lon, nome) {
-        pontos.push({ id: Date.now(), latlng: L.latLng(lat, lon), nome: nome });
+        // Força conversão para número para evitar erro no mapa
+        let nLat = parseFloat(lat);
+        let nLon = parseFloat(lon);
+        if(isNaN(nLat) || isNaN(nLon)) return alert("Coordenada inválida");
+
+        pontos.push({ id: Date.now(), latlng: L.latLng(nLat, nLon), nome: nome });
         document.getElementById('sugestoes').style.display = 'none';
         document.getElementById('busca').value = '';
         renderLista();
@@ -168,41 +155,39 @@
         marcadores = [];
         let html = '';
         pontos.forEach((p, i) => {
-            html += `<div class="ponto-card ${i==0?'origem':''}">
-                <span><b>${i==0?'🏁':'📍'}</b> ${p.nome.substring(0,30)}</span>
-                <button onclick="remover(${p.id})" style="border:none; background:none; color:red; padding:10px; font-weight:bold;">✕</button>
-            </div>`;
+            html += `<div class="ponto-card"><span><b>${i==0?'🏁':'📍'}</b> ${p.nome.substring(0,25)}</span><button onclick="remover(${p.id})" style="border:none; background:none; color:red; font-weight:bold;">✕</button></div>`;
             marcadores.push(L.marker(p.latlng).addTo(map));
         });
         document.getElementById('listaAtiva').innerHTML = html;
+        if(pontos.length > 0) map.panTo(pontos[pontos.length-1].latlng);
     }
 
-    // Correção Plus Code
-    function addPlus() {
-        let code = document.getElementById('inputPlus').value;
-        if(!code) return alert("Digite o Plus Code");
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(code)}`)
-            .then(r => r.json()).then(data => {
-                if(data && data[0]) {
-                    adicionar(data[0].lat, data[0].lon, "Plus Code: " + code);
-                    document.getElementById('inputPlus').value = '';
-                } else {
-                    alert("Local não encontrado para este Plus Code.");
-                }
-            });
-    }
-
+    // CORREÇÃO CRÍTICA: Captura de Coordenada do Google Maps
     function addCoord() {
         let v = document.getElementById('inputCoord').value;
-        let c = v.split(',');
-        if(c.length >= 2) {
-            adicionar(c[0].trim(), c[1].trim(), "Coordenadas");
+        // Regex para extrair números decimais mesmo com espaços ou vírgulas
+        let c = v.match(/-?\d+\.\d+/g); 
+        if(c && c.length >= 2) {
+            adicionar(c[0], c[1], "Ponto Coordenada");
             document.getElementById('inputCoord').value = '';
+        } else {
+            alert("Cole a coordenada do Maps (Ex: -16.32, -48.95)");
         }
     }
 
+    function addPlus() {
+        let code = document.getElementById('inputPlus').value;
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(code)}`)
+            .then(r => r.json()).then(data => {
+                if(data[0]) {
+                    adicionar(data[0].lat, data[0].lon, "Plus Code: " + code);
+                    document.getElementById('inputPlus').value = '';
+                } else { alert("Plus Code não encontrado."); }
+            });
+    }
+
     function calcularTudo() {
-        if(pontos.length < 2) return alert("Adicione origem e destino.");
+        if(pontos.length < 2) return alert("Defina Origem e Destino.");
         let rotaFisica = [...pontos, pontos[0]];
         if(routingControl) map.removeControl(routingControl);
 
@@ -216,30 +201,33 @@
             let vKm = parseFloat(document.getElementById('valorKm').value);
             let freteBruto = (tipoRota === 'ida') ? (kmIda * vKm) : (kmTotal * vKm);
             
-            let lIda = kmIda / parseFloat(document.getElementById('mediaC').value);
-            let lVolta = kmIda / parseFloat(document.getElementById('mediaV').value);
-            let custoD = (lIda + lVolta) * parseFloat(document.getElementById('diesel').value);
+            let custoD = ((kmIda / parseFloat(document.getElementById('mediaC').value)) + (kmIda / parseFloat(document.getElementById('mediaV').value))) * parseFloat(document.getElementById('diesel').value);
             let ped = (kmTotal * 0.12) * (parseInt(document.getElementById('eixos').value) / 2);
             let com = freteBruto * (parseFloat(document.getElementById('comissao').value) / 100);
-            
             let lucro = freteBruto - custoD - ped - com;
             let margem = (lucro / freteBruto) * 100;
 
             document.getElementById('resKmIda').innerText = kmIda.toFixed(1) + " km";
             document.getElementById('resKmTotal').innerText = kmTotal.toFixed(1) + " km";
-            document.getElementById('resAntt').innerText = "R$ " + ((kmIda * 6.1) + 500).toLocaleString('pt-BR');
+            document.getElementById('resAntt').innerText = "R$ " + ((kmIda * 6.3) + 400).toLocaleString('pt-BR');
             document.getElementById('resBruto').innerText = "R$ " + freteBruto.toLocaleString('pt-BR');
             document.getElementById('resDiesel').innerText = "R$ " + custoD.toFixed(2);
             document.getElementById('resPedagio').innerText = "R$ " + ped.toFixed(2);
+            document.getElementById('resComissao').innerText = "R$ " + com.toFixed(2);
             document.getElementById('resLucro').innerText = "R$ " + lucro.toLocaleString('pt-BR');
             document.getElementById('resMargem').innerText = margem.toFixed(1) + "%";
-            
             document.getElementById('resultadoDRE').style.display = 'block';
             map.fitBounds(L.latLngBounds(pontos.map(p => p.latlng)));
         }).addTo(map);
     }
 
     function remover(id) { pontos = pontos.filter(p => p.id !== id); renderLista(); }
+    function limparTudo() { pontos = []; renderLista(); document.getElementById('resultadoDRE').style.display='none'; if(routingControl) map.removeControl(routingControl); }
+
+    function enviarZap() {
+        let msg = `*RELATÓRIO FRETE*%0A💰 VALOR: ${document.getElementById('resBruto').innerText}%0A✅ LUCRO: ${document.getElementById('resLucro').innerText} (${document.getElementById('resMargem').innerText})`;
+        window.open(`https://api.whatsapp.com/send?text=${msg}`);
+    }
 </script>
 </body>
 </html>
