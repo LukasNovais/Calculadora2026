@@ -189,56 +189,90 @@
     }
 
     function calcularTudo() {
-        if(pontos.length < 2) return alert("Defina Origem e Destino.");
+        if(pontos.length < 2) return alert("Defina pelo menos Origem e Destino.");
         
-        // CORREÇÃO: Não forçar o caminhão a voltar no visual do mapa se for só 'ida'
-        let rotaFisica = tipoRota === 'idavolta' ? [...pontos, pontos[0]] : [...pontos];
-        
-        if(routingControl) map.removeControl(routingControl);
+        // Remove controle anterior se existir
+        if(routingControl) {
+            map.removeControl(routingControl);
+            routingControl = null;
+        }
 
-        routingControl = L.Routing.control({
-            waypoints: rotaFisica.map(p => p.latlng),
-            // CORREÇÃO CRÍTICA: profile deve ser 'driving' no OSRM público.
-            router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1', profile: 'driving' }),
-            show: false, 
-            addWaypoints: false,
-            // SUGESTÃO APLICADA: Impede que o roteirizador duplique os marcadores visuais no mapa
-            createMarker: function() { return null; } 
-        }).on('routesfound', function(e) {
-            let kmRotaGerada = (e.routes[0].summary.totalDistance / 1000) * 1.05; // Margem de erro 5%
-            
-            // Reajuste de matemática baseado no desenho físico da rota (Ida vs Ida/Volta)
-            let kmIda = tipoRota === 'idavolta' ? kmRotaGerada / 2 : kmRotaGerada;
-            let giroTotal = tipoRota === 'idavolta' ? kmRotaGerada : kmRotaGerada * 2;
+        // Prepara os pontos: Se for ida e volta, ele vai e volta. Se for só ida, segue a lista.
+        let waypointsCalculo = pontos.map(p => p.latlng);
+        if(tipoRota === 'idavolta') {
+            waypointsCalculo.push(pontos[0].latlng); // Adiciona a volta ao ponto inicial
+        }
 
-            let vKm = parseFloat(document.getElementById('valorKm').value) || 0;
-            let freteBruto = (tipoRota === 'ida') ? (kmIda * vKm) : (giroTotal * vKm);
-            
-            let custoD = ((kmIda / parseFloat(document.getElementById('mediaC').value)) + (kmIda / parseFloat(document.getElementById('mediaV').value))) * parseFloat(document.getElementById('diesel').value);
-            let ped = (giroTotal * 0.12) * (parseInt(document.getElementById('eixos').value) / 2);
-            let com = freteBruto * (parseFloat(document.getElementById('comissao').value) / 100);
-            let lucro = freteBruto - custoD - ped - com;
-            
-            // SUGESTÃO APLICADA: Prevenir erro matemático de divisão por zero na margem
-            let margem = freteBruto > 0 ? (lucro / freteBruto) * 100 : 0;
+        try {
+            routingControl = L.Routing.control({
+                waypoints: waypointsCalculo,
+                router: L.Routing.osrmv1({ 
+                    serviceUrl: 'https://router.project-osrm.org/route/v1',
+                    profile: 'driving', // 'driving' é o padrão correto
+                    language: 'pt-BR'
+                }),
+                lineOptions: {
+                    styles: [{ color: '#1a73e8', opacity: 0.7, weight: 5 }]
+                },
+                show: false,
+                addWaypoints: false,
+                createMarker: function() { return null; } 
+            }).on('routesfound', function(e) {
+                let rota = e.routes[0];
+                let kmTotal = (rota.summary.totalDistance / 1000); 
+                
+                // Lógica de Negócio do Frete
+                let vKm = parseFloat(document.getElementById('valorKm').value) || 0;
+                let dieselPreco = parseFloat(document.getElementById('diesel').value) || 0;
+                let mC = parseFloat(document.getElementById('mediaC').value) || 1;
+                let mV = parseFloat(document.getElementById('mediaV').value) || 1;
+                let nEixos = parseInt(document.getElementById('eixos').value) || 1;
+                let pComissao = parseFloat(document.getElementById('comissao').value) || 0;
 
-            // SUGESTÃO APLICADA: Formatação estrita para moeda garantindo as casas decimais corretas
-            document.getElementById('resKmIda').innerText = kmIda.toFixed(1) + " km";
-            document.getElementById('resKmTotal').innerText = giroTotal.toFixed(1) + " km";
-            document.getElementById('resAntt').innerText = "R$ " + ((kmIda * 6.3) + 400).toLocaleString('pt-BR', {minimumFractionDigits: 2});
-            document.getElementById('resBruto').innerText = "R$ " + freteBruto.toLocaleString('pt-BR', {minimumFractionDigits: 2});
-            document.getElementById('resDiesel').innerText = "- R$ " + custoD.toLocaleString('pt-BR', {minimumFractionDigits: 2});
-            document.getElementById('resPedagio').innerText = "- R$ " + ped.toLocaleString('pt-BR', {minimumFractionDigits: 2});
-            document.getElementById('resComissao').innerText = "- R$ " + com.toLocaleString('pt-BR', {minimumFractionDigits: 2});
-            document.getElementById('resLucro').innerText = "R$ " + lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2});
-            document.getElementById('resMargem').innerText = margem.toFixed(1) + "%";
+                // Cálculos de distância baseados no tipo de rota escolhido pelo usuário
+                let kmIda, giroFinanceiro;
+                if(tipoRota === 'idavolta') {
+                    kmIda = kmTotal / 2;
+                    giroFinanceiro = kmTotal; // Cobrar km total rodado
+                } else {
+                    kmIda = kmTotal;
+                    giroFinanceiro = kmTotal; // Cobrar apenas a ida (ou como preferir negociar)
+                }
+
+                let freteBruto = giroFinanceiro * vKm;
+                
+                // Custo Diesel (Ida com média C, Volta com média V)
+                let custoDiesel = ((kmIda / mC) + (kmIda / mV)) * dieselPreco;
+                
+                // Estimativa de Pedágio (Média Brasil R$ 0,15 por eixo/km)
+                let custoPedagio = (giroFinanceiro * 0.15) * nEixos; 
+                
+                let valorComissao = freteBruto * (pComissao / 100);
+                let lucroLiquido = freteBruto - custoDiesel - custoPedagio - valorComissao;
+                let margem = freteBruto > 0 ? (lucroLiquido / freteBruto) * 100 : 0;
+
+                // Preenchimento do Painel (DRE)
+                document.getElementById('resKmIda').innerText = kmIda.toFixed(1) + " km";
+                document.getElementById('resKmTotal').innerText = (tipoRota === 'idavolta' ? kmTotal : kmIda * 2).toFixed(1) + " km";
+                document.getElementById('resAntt').innerText = "R$ " + (kmIda * 5.80).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                document.getElementById('resBruto').innerText = "R$ " + freteBruto.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                document.getElementById('resDiesel').innerText = "- R$ " + custoDiesel.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                document.getElementById('resPedagio').innerText = "- R$ " + custoPedagio.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                document.getElementById('resComissao').innerText = "- R$ " + valorComissao.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                document.getElementById('resLucro').innerText = "R$ " + lucroLiquido.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                document.getElementById('resMargem').innerText = margem.toFixed(1) + "%";
+                
+                document.getElementById('resultadoDRE').style.display = 'block';
+                map.fitBounds(L.latLngBounds(waypointsCalculo));
+
+            }).on('routingerror', function(err) {
+                console.error("Erro OSRM:", err);
+                alert("O servidor de rotas está sobrecarregado ou a distância é muito longa. Tente pontos mais próximos ou aguarde 5 segundos.");
+            }).addTo(map);
             
-            document.getElementById('resultadoDRE').style.display = 'block';
-            map.fitBounds(L.latLngBounds(pontos.map(p => p.latlng)));
-        }).on('routingerror', function(err) {
-            alert("Erro na API de Roteirização. Tente novamente.");
-            console.error(err);
-        }).addTo(map);
+        } catch (e) {
+            console.error("Erro Crítico:", e);
+        }
     }
 
     function remover(id) { pontos = pontos.filter(p => p.id !== id); renderLista(); }
